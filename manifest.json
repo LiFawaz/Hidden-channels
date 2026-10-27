@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "id": "lifawaz-hidden-channels",
+  "name": "Hidden Channels",
+  "author": "LiFawaz (Valenced port)",
+  "contributors": [
+    "Lioncat6 (upstream implementation) (https://github.com/Lioncat6/revenge-plugins \"Original source\")",
+    "cloudburst (original concept)",
+    "Training Dummy (upstream contributor)"
+  ],
+  "description": "Valenced port scaffold for Hidden Channels. Not runtime-verified yet.",
+  "version": {
+    "nums": [0, 1, 0],
+    "label": "port-scaffold"
+  }
+}
