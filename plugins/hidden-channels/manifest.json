@@ -2,14 +2,14 @@
   "format": 1,
   "id": "com.lifawaz.hidden-channels",
   "name": "Hidden Channels",
-  "description": "Channel metadata browser and details-only panel for authorized metadata exports. Does not bypass permissions or retrieve restricted messages.",
+  "description": "Metadata browser for authorized channel exports. Does not bypass Discord channel permissions.",
   "author": "LiFawaz (https://github.com/LiFawaz)",
   "contributors": [
     "Lioncat6",
     "cloudburst",
     "Training Dummy"
   ],
-  "version": "2.3.0",
+  "version": "2.3.1",
   "dependencies": {
     "valenced.api": {
       "version": ">=1 <2"
