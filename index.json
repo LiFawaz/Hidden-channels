@@ -17,8 +17,8 @@
       },
       "versions": {
         "2.1.0": {
-          "url": "https://LiFawaz.github.io/Hidden-channels/pool/com.lifawaz.hidden-channels@2.1.0.zip",
-          "sha256": "ef732b876c45904e6044d8b814832e47d221e8542939e5eba82cc3f7a68ad4be",
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.1.0.zip",
+          "sha256": "eec50a0678eee6a5e3411b59b9040c407bf36f09f0238adf2b9b11dbdcef1cb2",
           "size": 1843,
           "dependencies": {
             "valenced.api": {
