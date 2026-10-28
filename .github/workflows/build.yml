@@ -39,7 +39,7 @@ jobs:
           (cd .package-staging && zip -q -j "$GITHUB_WORKSPACE/dist/pool/com.lifawaz.hidden-channels@2.1.0.zip" manifest.json index.js)
 
       - name: Generate repository index
-        run: bun run generate-index --dist dist/pool --base-url https://LiFawaz.github.io/Hidden-channels/pool --out dist/index.json
+        run: bun run generate-index --dist dist/pool --base-url https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool --out dist/index.json
 
       - name: Verify repository index
         run: test -s dist/index.json
