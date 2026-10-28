@@ -1,9 +1,9 @@
 /// <reference types="@valenced/types" />
 
 import React from "react";
+import { Pressable, Text, TextInput, View, ScrollView } from "react-native";
 
 declare const bunny: any;
-import { Pressable, Text, TextInput, View, ScrollView } from "react-native";
 
 type ChannelRecord = {
   id: string;
@@ -76,11 +76,12 @@ function discoverClientChannels(): { channels: ChannelRecord[]; source: string }
       seen.add(value);
       visited++;
       if (!Array.isArray(value) && typeof value.id === "string" &&
-          typeof value.name === "string" &&
           (/^\d{15,22}$/.test(value.id)) &&
-          (typeof value.type === "number" || typeof value.type === "string" ||
-           typeof value.guild_id === "string" || typeof value.guildId === "string" ||
-           typeof value.parent_id === "string" || typeof value.parentId === "string")) {
+          (typeof value.type === "number" || typeof value.type === "string") &&
+          (value.name == null || typeof value.name === "string") &&
+          (typeof value.guild_id === "string" || typeof value.guildId === "string" ||
+           typeof value.parent_id === "string" || typeof value.parentId === "string" ||
+           typeof value.name === "string")) {
         found.set(value.id, value);
       }
       if (value instanceof Map) {
@@ -102,7 +103,7 @@ function discoverClientChannels(): { channels: ChannelRecord[]; source: string }
       const parentId = channel.parent_id ?? channel.parentId;
       const parent = parentId ? found.get(String(parentId)) : undefined;
       const guildId = channel.guild_id ?? channel.guildId;
-      const isWithheld = typeof channel.name === "string" &&
+      const isWithheld = typeof channel.name !== "string" ||
         /^(no access|unknown channel|private channel)$/i.test(channel.name.trim());
       return {
         id: String(channel.id),
