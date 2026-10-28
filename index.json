@@ -5,7 +5,7 @@
   "plugins": {
     "com.lifawaz.hidden-channels": {
       "name": "Hidden Channels",
-      "description": "Metadata browser for authorized channel exports. Does not bypass Discord channel permissions.",
+      "description": "Metadata browser for authorized channel exports with a details-only preview. Does not bypass Discord channel permissions.",
       "author": "LiFawaz (https://github.com/LiFawaz)",
       "contributors": [
         "Lioncat6",
@@ -13,13 +13,13 @@
         "Training Dummy"
       ],
       "channels": {
-        "latest": "2.3.1"
+        "latest": "2.3.2"
       },
       "versions": {
-        "2.3.1": {
-          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.3.1.zip",
-          "sha256": "a973323335c2eeeb1b346bf562de1c41012a32b5a1aed709f4482816fd655909",
-          "size": 3184,
+        "2.3.2": {
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.3.2.zip",
+          "sha256": "33a8a6e10da4e00ba4c40c01eda24af7cb4f46a1f398578bcd785b430f0aebfb",
+          "size": 3201,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
