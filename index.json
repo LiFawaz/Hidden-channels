@@ -5,7 +5,7 @@
   "plugins": {
     "com.lifawaz.hidden-channels": {
       "name": "Hidden Channels",
-      "description": "Details-only inspector for channel metadata available in the local client cache. Does not bypass permissions or retrieve restricted messages.",
+      "description": "Channel metadata browser and details-only panel for authorized metadata exports. Does not bypass permissions or retrieve restricted messages.",
       "author": "LiFawaz (https://github.com/LiFawaz)",
       "contributors": [
         "Lioncat6",
@@ -13,13 +13,13 @@
         "Training Dummy"
       ],
       "channels": {
-        "latest": "2.2.0"
+        "latest": "2.3.0"
       },
       "versions": {
-        "2.2.0": {
-          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.2.0.zip",
-          "sha256": "61de6de6a7543d21af7a605e8206823c09fa6968b5423a03f23ce89fab2d2990",
-          "size": 2928,
+        "2.3.0": {
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.3.0.zip",
+          "sha256": "0670eec0d6001d44c5a0bbfa55f6045e5a853ea1961f0813c04c086216d0d271",
+          "size": 2922,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
