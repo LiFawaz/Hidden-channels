@@ -100,6 +100,7 @@ export default plugin(function () {
     const [rawExport, setRawExport] = React.useState("");
     const [channels, setChannels] = React.useState<ChannelRecord[]>([]);
     const [selected, setSelected] = React.useState<ChannelRecord | null>(null);
+    const [detailOnly, setDetailOnly] = React.useState(false);
     const [status, setStatus] = React.useState("Import a channel metadata export provided by a server administrator to browse channels and their details.");
     const [filter, setFilter] = React.useState("");
 
@@ -116,6 +117,21 @@ export default plugin(function () {
 
     function cancel() {
       setSelected(null);
+      setDetailOnly(false);
+    }
+
+    function loadExample() {
+      setRawExport(JSON.stringify({ channels: [{ id: "123456789012345678", name: "example-hidden-channel", category: "Example category", categoryId: "123456789012345670", position: 0, topic: "Example topic supplied by an administrator", createdAt: "2024-01-01T12:00:00Z", lastMessageAt: "2024-01-02T12:00:00Z", lastPinAt: null, requiredRoles: ["Example role"], requiredUsers: [], permissionSummary: "Example only; replace with authorized metadata." }] }, null, 2));
+      setStatus("Example data loaded. Press Load channel metadata to preview the details screen.");
+    }
+
+    function clearData() {
+      setRawExport("");
+      setChannels([]);
+      setSelected(null);
+      setDetailOnly(false);
+      setFilter("");
+      setStatus("Cleared imported metadata.");
     }
 
     const visible = channels.filter((c) =>
@@ -143,7 +159,8 @@ export default plugin(function () {
         React.createElement(Text, null, "Required users: " + (selected.requiredUsers?.join(", ") || "Unavailable")),
         React.createElement(Text, null, "Permission notes: " + textValue(selected.permissionSummary)),
         React.createElement(Text, { style: { opacity: 0.75 } }, "Details come only from the imported metadata export. This screen never fetches or displays channel messages. Cancel closes this panel without changing the list."),
-        button("View anyways", () => setStatus("Details-only mode: message content remains unavailable."), true),
+        detailOnly ? React.createElement(Text, { style: { padding: 10, borderRadius: 8, backgroundColor: "rgba(88,101,242,0.15)" } }, "Details-only view is active. No channel navigation or message request was made.") : null,
+        button("View anyways", () => setDetailOnly(true), true),
         button("Cancel", cancel)
       );
     }
@@ -162,6 +179,8 @@ export default plugin(function () {
         style: { minHeight: 130, borderWidth: 1, borderColor: "#777", borderRadius: 8, padding: 12 },
       }),
       button("Load channel metadata", loadExport, true),
+      button("Load example data", loadExample),
+      channels.length ? button("Clear imported data", clearData) : null,
       React.createElement(Text, { style: { opacity: 0.9 } }, status),
       channels.length ? React.createElement(TextInput, {
         value: filter,
