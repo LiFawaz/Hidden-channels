@@ -1,22 +1,14 @@
 {
   "format": 1,
-  "id": "lifawaz-hidden-channels",
+  "id": "com.lifawaz.hidden-channels",
   "name": "Hidden Channels",
-  "author": "LiFawaz (Valenced port)",
-  "contributors": [
-    "Lioncat6 (upstream implementation)",
-    "cloudburst (original concept)",
-    "Training Dummy (upstream contributor)"
-  ],
-  "description": "Valenced compatibility build with settings and local channel metadata lookup; no permission bypass.",
-  "version": "0.4.0",
+  "description": "Reveals channels hidden by role restrictions and shows their metadata. Cannot read messages the client never received.",
+  "author": "LiFawaz (https://github.com/LiFawaz \"GitHub\")",
+  "contributors": ["Lioncat6", "cloudburst", "Training Dummy"],
+  "version": "2.0.0",
   "dependencies": {
-    "valenced.api": {
-      "version": ">=1 <2"
-    },
-    "discord": {
-      "version": "*"
-    }
+    "valenced.api": { "version": ">=1 <2" },
+    "discord": { "version": "*" }
   },
   "dist": {
     "script": "index.js"
