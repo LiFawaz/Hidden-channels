@@ -5,21 +5,21 @@
   "plugins": {
     "com.lifawaz.hidden-channels": {
       "name": "Hidden Channels",
-      "description": "Channel metadata browser with category sorting, details-only preview, hardened JSON import, and explicit detection of withheld channel names. Does not bypass Discord channel permissions.",
-      "author": "LiFawaz (https://github.com/LiFawaz)",
+      "description": "Reworked from cloudburst's original script. Shows hidden channels with a lock icon and confirmation popup.",
+      "author": "LiFawaz",
       "contributors": [
         "Lioncat6",
         "cloudburst",
         "Training Dummy"
       ],
       "channels": {
-        "latest": "2.3.3"
+        "latest": "3.0.0"
       },
       "versions": {
-        "2.3.3": {
-          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.3.3.zip",
-          "sha256": "c39b86f2f56d36efd9316c185e83e933ad3677a95b2718a4dd6618abea58ba18",
-          "size": 4314,
+        "3.0.0": {
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@3.0.0.zip",
+          "sha256": "aac3d9f35c7b22e348b09499d0bbcd1aedce93dd253c751ecddfda0a5f3c1470",
+          "size": 4252,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
