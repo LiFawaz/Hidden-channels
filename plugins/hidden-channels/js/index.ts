@@ -67,13 +67,20 @@ function button(label: string, onPress: () => void, primary = false) {
 }
 
 function parseExport(raw: string): ChannelRecord[] {
-  const parsed = JSON.parse(raw);
-  const rows = Array.isArray(parsed) ? parsed : parsed.channels;
-  if (!Array.isArray(rows)) throw new Error('Expected an array of channels or an object with a "channels" array.');
-  return rows.map((row: any, i: number) => {
-    if (!row || typeof row !== "object" || typeof row.id !== "string" || typeof row.name !== "string") {
-      throw new Error(`Channel entry ${i + 1} needs string fields "id" and "name".`);
+  const parsed: unknown = JSON.parse(raw);
+  const rows = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === "object" && "channels" in parsed
+      ? (parsed as { channels?: unknown }).channels
+      : undefined;
+  if (!Array.isArray(rows)) throw new Error('Expected a JSON array or an object with a "channels" array.');
+  const seenIds = new Set<string>();
+  const normalized = rows.map((row: any, i: number) => {
+    if (!row || typeof row !== "object" || Array.isArray(row) || typeof row.id !== "string" || !row.id.trim() || typeof row.name !== "string" || !row.name.trim()) {
+      throw new Error(`Channel entry ${i + 1} needs non-empty string fields "id" and "name".`);
     }
+    if (seenIds.has(row.id)) throw new Error(`Duplicate channel ID "${row.id}" in the metadata export.`);
+    seenIds.add(row.id);
     return {
       id: row.id,
       name: row.name,
@@ -88,7 +95,8 @@ function parseExport(raw: string): ChannelRecord[] {
       requiredUsers: Array.isArray(row.requiredUsers) ? row.requiredUsers.map(String) : Array.isArray(row.required_users) ? row.required_users.map(String) : undefined,
       permissionSummary: typeof row.permissionSummary === "string" ? row.permissionSummary : typeof row.permission_summary === "string" ? row.permission_summary : undefined,
     } as ChannelRecord;
-  }).sort((a: ChannelRecord, b: ChannelRecord) =>
+  });
+  return normalized.sort((a: ChannelRecord, b: ChannelRecord) =>
     (a.category ?? "").localeCompare(b.category ?? "") ||
     (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER) ||
     a.name.localeCompare(b.name)
@@ -109,7 +117,11 @@ export default plugin(function () {
         const rows = parseExport(rawExport);
         setChannels(rows);
         setSelected(null);
-        setStatus(`Loaded ${rows.length} channel metadata record(s). No messages were imported or displayed.`);
+        const withheld = rows.filter((channel) => channel.name.trim().toLowerCase() === "no access").length;
+        setStatus(
+          `Loaded ${rows.length} metadata record(s). No messages were imported or displayed.` +
+          (withheld ? ` ${withheld} record(s) are named "No Access": Discord did not provide their real names in this export, so this plugin cannot recover those names from the placeholder.` : "")
+        );
       } catch (error) {
         setStatus(error instanceof Error ? error.message : "Could not parse the metadata export.");
       }
@@ -145,8 +157,11 @@ export default plugin(function () {
 
     if (selected) {
       return React.createElement(ScrollView, { contentContainerStyle: { padding: 16, gap: 12 } },
-        React.createElement(Text, { style: { fontSize: 20, fontWeight: "700" } }, "This channel is hidden."),
+        React.createElement(Text, { style: { fontSize: 20, fontWeight: "700" } }, selected.name.trim().toLowerCase() === "no access" ? "Discord withheld this channel's metadata." : "Channel details"),
         React.createElement(Text, { style: { fontSize: 17, fontWeight: "600" } }, "#" + selected.name),
+        selected.name.trim().toLowerCase() === "no access"
+          ? React.createElement(Text, { style: { opacity: 0.85 } }, "This is a placeholder, not the channel's real name. The actual name and details were not present in the imported data.")
+          : null,
         React.createElement(Text, null, "Category: " + textValue(selected.category)),
         React.createElement(Text, null, "Category ID: " + textValue(selected.categoryId)),
         React.createElement(Text, null, "Channel order: " + textValue(selected.position)),
