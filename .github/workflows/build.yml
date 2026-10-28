@@ -1,0 +1,51 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build plugin
+        run: bun run build
+
+      - name: Verify build output
+        run: test -s plugins/hidden-channels/build/js/index.js
+
+      - name: Package plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/pool .package-staging
+          cp plugins/hidden-channels/manifest.json .package-staging/manifest.json
+          cp plugins/hidden-channels/build/js/index.js .package-staging/index.js
+          (cd .package-staging && zip -q -j "$GITHUB_WORKSPACE/dist/pool/com.lifawaz.hidden-channels@2.1.0.zip" manifest.json index.js)
+
+      - name: Generate repository index
+        run: bun run generate-index --dist dist/pool --base-url https://LiFawaz.github.io/Hidden-channels/pool --out dist/index.json
+
+      - name: Verify repository index
+        run: test -s dist/index.json
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist

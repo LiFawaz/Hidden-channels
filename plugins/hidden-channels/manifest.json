@@ -2,10 +2,10 @@
   "format": 1,
   "id": "com.lifawaz.hidden-channels",
   "name": "Hidden Channels",
-  "description": "Reveals channels hidden by role restrictions and shows their metadata. Cannot read messages the client never received.",
-  "author": "LiFawaz (https://github.com/LiFawaz \"GitHub\")",
+  "description": "Inspects channel metadata already cached locally by Valenced. Does not bypass channel permissions or retrieve restricted messages.",
+  "author": "LiFawaz (https://github.com/LiFawaz)",
   "contributors": ["Lioncat6", "cloudburst", "Training Dummy"],
-  "version": "2.0.0",
+  "version": "2.1.0",
   "dependencies": {
     "valenced.api": { "version": ">=1 <2" },
     "discord": { "version": "*" }

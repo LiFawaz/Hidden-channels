@@ -1,22 +1,40 @@
-# Hidden Channels — Valenced compatibility build
+# Hidden Channels
 
-Upstream: https://github.com/Lioncat6/revenge-plugins/tree/master/plugins/hidden-channels
+A small metadata inspector for Valenced. It looks up a channel object that is already cached by your client and displays the metadata available on that object.
 
-The latest downloadable ZIP is available from this repository's GitHub Code menu via **Download ZIP** only for source files; for a packaged plugin, use the release ZIP supplied separately in the conversation.
-
-## Current features
-
-- Configure screen with toggles for the lock indicator and metadata confirmation.
-- Local channel metadata lookup by channel ID, where the client already has the channel object.
-- Creation date from the channel snowflake, last-message-ID timestamp, topic, and last-pin timestamp when available.
-
-## Not yet complete
-
-The runtime-specific channel-row lock icon, automatic inaccessible-channel listing, navigation confirmation hook, and repository-browser install index are not yet implemented or verified on a live Valenced build. This package does not fetch restricted messages or bypass Discord permissions.
+It does **not** override Discord permissions, reveal channels that were never sent to your client, or fetch messages from channels you cannot access.
 
 ## Install
 
-Use the packaged ZIP in the conversation with Valenced's local plugin-file installer. Direct repository-browser installation is not configured yet because Valenced's repository index format has not been verified.
+Once GitHub Pages is enabled for this repository and the build workflow has completed, add this repository in Valenced:
+
+`https://LiFawaz.github.io/Hidden-channels/index.json`
+
+Then install **Hidden Channels** and open its settings.
+
+If the repository index is not available yet, open the latest successful build under **Actions** and check that the package and `dist/index.json` were generated.
+
+## Use
+
+1. Open the plugin settings.
+2. Enter a Discord channel ID.
+3. Tap **Inspect cached metadata**.
+4. The plugin displays fields available from the local channel cache, such as name, ID, type, topic, creation time, last-message timestamp, and last-pin timestamp.
+
+A channel ID lookup may return nothing if that channel object is not cached on your device. The plugin does not make a network request to retrieve missing channel metadata.
+
+## Development
+
+The plugin source lives at `plugins/hidden-channels/js/index.ts`.
+
+Build it locally with:
+
+```sh
+bun install
+bun run build
+```
+
+The GitHub Actions workflow builds the plugin, packages the manifest and generated JavaScript into a versioned ZIP, creates the repository index, and publishes the generated files to GitHub Pages.
 
 ## Credits
 
