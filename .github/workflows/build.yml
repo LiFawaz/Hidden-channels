@@ -36,7 +36,7 @@ jobs:
           mkdir -p dist/pool .package-staging
           cp plugins/hidden-channels/manifest.json .package-staging/manifest.json
           cp plugins/hidden-channels/build/js/index.js .package-staging/index.js
-          (cd .package-staging && zip -q -j "$GITHUB_WORKSPACE/dist/pool/com.lifawaz.hidden-channels@2.2.0.zip" manifest.json index.js)
+          (cd .package-staging && zip -q -j "$GITHUB_WORKSPACE/dist/pool/com.lifawaz.hidden-channels@2.3.0.zip" manifest.json index.js)
 
       - name: Generate repository index
         run: bun run generate-index --dist dist/pool --base-url https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool --out dist/index.json
