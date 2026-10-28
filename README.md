@@ -1,41 +1,56 @@
 # Hidden Channels
 
-A small metadata inspector for Valenced. It looks up a channel object that is already cached by your client and displays the metadata available on that object.
+A details-only browser for channel metadata. It groups imported channel records by category, sorts them by category and position, supports search, and opens a panel with topic, creation time, last-message time, last-pin time, and any provided role/user access notes. It never displays channel messages.
 
-It does **not** override Discord permissions, reveal channels that were never sent to your client, or fetch messages from channels you cannot access.
+## Important limitation
+
+Discord does not reliably provide metadata for channels a user is not authorized to view. This plugin does not bypass permissions or secretly fetch private channel data. To list inaccessible channels, use a JSON metadata export supplied by a server administrator.
 
 ## Install
 
-After the build workflow has completed, add this repository in Valenced:
+Add this repository in Valenced:
 
 `https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/index.json`
 
-Then install **Hidden Channels** and open its settings.
-
-If the repository index is not available yet, open the latest successful build under **Actions** and check that the package and `dist/index.json` were generated.
+Install **Hidden Channels** and open its settings.
 
 ## Use
 
-1. Open the plugin settings.
-2. Enter a Discord channel ID.
-3. Tap **Inspect cached metadata**.
-4. The plugin displays fields available from the local channel cache, such as name, ID, type, topic, creation time, last-message timestamp, and last-pin timestamp.
+1. Obtain a channel metadata export from a server administrator.
+2. Paste the JSON into the plugin's export field and tap **Load channel metadata**.
+3. Search by channel or category; records are grouped by category and sorted by position.
+4. Tap a channel to open the details-only panel. **View anyways** does not load messages; **Cancel** closes the panel.
 
-A channel ID lookup may return nothing if that channel object is not cached on your device. The plugin does not make a network request to retrieve missing channel metadata.
+Accepted format:
+
+```json
+{
+  "channels": [
+    {
+      "id": "123456789012345678",
+      "name": "staff-room",
+      "category": "Staff",
+      "categoryId": "123456789012345670",
+      "position": 2,
+      "topic": "Internal coordination",
+      "createdAt": "2026-01-01T12:00:00Z",
+      "lastMessageAt": "2026-10-25T09:30:00Z",
+      "lastPinAt": "2026-10-20T14:00:00Z",
+      "requiredRoles": ["Moderator"],
+      "requiredUsers": [],
+      "permissionSummary": "View Channel denied for @everyone; allowed for Moderator"
+    }
+  ]
+}
+```
+
+Fields other than `id` and `name` are optional. Discord snowflake IDs are accepted for `createdAt`, `lastMessageAt`, and `lastPinAt`; ISO timestamps also work. The plugin only displays the metadata provided in the export and does not validate whether permission notes are current.
 
 ## Development
 
-The plugin source lives at `plugins/hidden-channels/js/index.ts`.
-
-Build it locally with:
+Source: `plugins/hidden-channels/js/index.ts`
 
 ```sh
 bun install
 bun run build
 ```
-
-The GitHub Actions workflow builds the plugin, packages the manifest and generated JavaScript into a versioned ZIP, creates the repository index, and publishes the generated files to GitHub Pages.
-
-## Credits
-
-Original implementation credits: Lioncat6, cloudburst, and Training Dummy.
