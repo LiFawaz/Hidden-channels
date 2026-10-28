@@ -1,10 +1,10 @@
 # Hidden Channels
 
-A details-only browser for channel metadata. It groups imported channel records by category, sorts them by category and position, supports search, and opens a panel with topic, creation time, last-message time, last-pin time, and any provided role/user access notes. It never displays channel messages.
+A details-only browser for channel metadata. It automatically scans channel records already present in Discord's client cache, groups them by category and position, supports search, and opens a panel with topic, creation time, last-message time, last-pin time, and any available role/user access notes. It can also import administrator-provided metadata exports. It never displays channel messages.
 
 ## Important limitation
 
-Discord does not reliably provide metadata for channels a user is not authorized to view. This plugin does not bypass permissions or secretly fetch private channel data. To list inaccessible channels, use a JSON metadata export supplied by a server administrator.
+Discord may withhold the names and metadata of channels a user is not authorized to view. The automatic scan only reads records the client has already received and may show a `No Access` placeholder when Discord provides one; it cannot reconstruct information Discord withheld. The plugin does not bypass permissions or secretly fetch private channel data. For additional metadata, import a JSON export supplied by a server administrator.
 
 ## Install
 
@@ -16,10 +16,11 @@ Install **Hidden Channels** and open its settings.
 
 ## Use
 
-1. Obtain a channel metadata export from a server administrator.
-2. Paste the JSON into the plugin's export field and tap **Load channel metadata**.
+1. Open settings; the plugin automatically scans the channel records already in the client cache.
+2. Tap **Scan client channel cache** to refresh the scan.
 3. Search by channel or category; records are grouped by category and sorted by position.
 4. Tap a channel to open the details-only panel. **View anyways** does not load messages; **Cancel** closes the panel.
+5. If you have an administrator-provided metadata export, paste it and tap **Load channel metadata**.
 
 Accepted format:
 
