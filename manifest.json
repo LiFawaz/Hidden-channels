@@ -4,13 +4,21 @@
   "name": "Hidden Channels",
   "author": "LiFawaz (Valenced port)",
   "contributors": [
-    "Lioncat6 (upstream implementation) (https://github.com/Lioncat6/revenge-plugins \"Original source\")",
+    "Lioncat6 (upstream implementation)",
     "cloudburst (original concept)",
     "Training Dummy (upstream contributor)"
   ],
-  "description": "Valenced port scaffold for Hidden Channels. Not runtime-verified yet.",
-  "version": {
-    "nums": [0, 1, 0],
-    "label": "port-scaffold"
+  "description": "Valenced compatibility build with settings and local channel metadata lookup; no permission bypass.",
+  "version": "0.4.0",
+  "dependencies": {
+    "valenced.api": {
+      "version": ">=1 <2"
+    },
+    "discord": {
+      "version": "*"
+    }
+  },
+  "dist": {
+    "script": "index.js"
   }
 }
