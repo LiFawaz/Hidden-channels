@@ -75,7 +75,7 @@ function actionButton(label: string, onPress: () => void, primary = false) {
         borderColor: "#777",
       },
     },
-    React.createElement(Text, { style: { color: primary ? "#fff" : "inherit", fontWeight: "600" } }, label)
+    React.createElement(Text, { style: { color: primary ? "#fff" : undefined, fontWeight: "600" } }, label)
   );
 }
 
