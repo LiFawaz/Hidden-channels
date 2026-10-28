@@ -5,7 +5,7 @@
   "plugins": {
     "com.lifawaz.hidden-channels": {
       "name": "Hidden Channels",
-      "description": "Channel metadata browser and details-only panel for authorized metadata exports. Does not bypass permissions or retrieve restricted messages.",
+      "description": "Metadata browser for authorized channel exports. Does not bypass Discord channel permissions.",
       "author": "LiFawaz (https://github.com/LiFawaz)",
       "contributors": [
         "Lioncat6",
@@ -13,13 +13,13 @@
         "Training Dummy"
       ],
       "channels": {
-        "latest": "2.3.0"
+        "latest": "2.3.1"
       },
       "versions": {
-        "2.3.0": {
-          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.3.0.zip",
-          "sha256": "0361de53cf6cc366d2aed96637dcdc2c95cbe07d6389463dbc7c6cd867878f3d",
-          "size": 2923,
+        "2.3.1": {
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.3.1.zip",
+          "sha256": "3cc84f4153f7174ac9cf1008483f95d5bb2735cfd62a269c7c1a54079ab4bb41",
+          "size": 2896,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
