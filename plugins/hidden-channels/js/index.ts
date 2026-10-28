@@ -79,7 +79,8 @@ function discoverClientChannels(): { channels: ChannelRecord[]; source: string }
           (/^\d{15,22}$/.test(value.id)) &&
           (typeof value.type === "number" || typeof value.type === "string") &&
           (value.name == null || typeof value.name === "string") &&
-          (typeof value.guild_id === "string" || typeof value.guildId === "string" ||
+          (typeof value.flags === "number" || typeof value.flags === "string" ||
+           typeof value.guild_id === "string" || typeof value.guildId === "string" ||
            typeof value.parent_id === "string" || typeof value.parentId === "string" ||
            typeof value.name === "string")) {
         found.set(value.id, value);
@@ -103,11 +104,13 @@ function discoverClientChannels(): { channels: ChannelRecord[]; source: string }
       const parentId = channel.parent_id ?? channel.parentId;
       const parent = parentId ? found.get(String(parentId)) : undefined;
       const guildId = channel.guild_id ?? channel.guildId;
-      const isWithheld = typeof channel.name !== "string" ||
-        /^(no access|unknown channel|private channel)$/i.test(channel.name.trim());
+      const isObfuscatedFlag = typeof channel.flags === "number" && (channel.flags & (1 << 17)) !== 0;
+      const isWithheld = isObfuscatedFlag ||
+        typeof channel.name !== "string" ||
+        /^(no access|unknown channel|private channel|___hidden___)$/i.test(channel.name.trim());
       return {
         id: String(channel.id),
-        name: isWithheld ? "No Access" : channel.name,
+        name: isWithheld ? "Hidden Channel (name withheld)" : channel.name,
         category: parent?.name ?? (typeof channel.category === "string" ? channel.category : undefined),
         categoryId: parentId ? String(parentId) : undefined,
         position: typeof channel.position === "number" ? channel.position : undefined,
@@ -116,7 +119,7 @@ function discoverClientChannels(): { channels: ChannelRecord[]; source: string }
         lastMessageAt: channel.lastMessageId ?? channel.last_message_id,
         lastPinAt: channel.lastPinTimestamp ?? channel.last_pin_timestamp,
         permissionSummary: isWithheld
-          ? "Discord supplied a placeholder; the real name and withheld fields are unavailable."
+          ? "Discord marked this channel as obfuscated or supplied a placeholder. The real name and withheld fields are not present in the client data."
           : (guildId ? "Found in the current client cache. Visibility and metadata depend on Discord's response." : undefined),
       } as ChannelRecord;
     }).sort((a, b) =>
@@ -200,8 +203,8 @@ export default plugin(function () {
       setChannels(result.channels);
       setSelected(null);
       setDetailOnly(false);
-      setStatus(result.source + (result.channels.some((c) => c.name === "No Access")
-        ? " Some entries are placeholders; this scan cannot recover names Discord withheld."
+      setStatus(result.source + (result.channels.some((c) => c.name === "Hidden Channel (name withheld)")
+        ? " Discord supplied obfuscated channel records, but not their real names or withheld fields."
         : "") + " Only data already present in the client cache is listed.");
     }
 
