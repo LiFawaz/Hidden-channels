@@ -6,9 +6,9 @@ It does **not** override Discord permissions, reveal channels that were never se
 
 ## Install
 
-Once GitHub Pages is enabled for this repository and the build workflow has completed, add this repository in Valenced:
+After the build workflow has completed, add this repository in Valenced:
 
-`https://LiFawaz.github.io/Hidden-channels/index.json`
+`https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/index.json`
 
 Then install **Hidden Channels** and open its settings.
 
