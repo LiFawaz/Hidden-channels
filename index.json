@@ -18,8 +18,8 @@
       "versions": {
         "2.3.1": {
           "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@2.3.1.zip",
-          "sha256": "2262c1c33c4debef94cceb5723d2b329be0eb687dbcd3e6b686d86d71b7a34b7",
-          "size": 2896,
+          "sha256": "a973323335c2eeeb1b346bf562de1c41012a32b5a1aed709f4482816fd655909",
+          "size": 3184,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
