@@ -1,20 +1,23 @@
-# Hidden Channels for Valenced
+# Hidden Channels — Valenced compatibility build
 
-A Valenced-oriented port scaffold for **Hidden Channels**, originally developed for Revenge/Vendetta.
+Upstream: https://github.com/Lioncat6/revenge-plugins/tree/master/plugins/hidden-channels
+
+The latest downloadable ZIP is available from this repository's GitHub Code menu via **Download ZIP** only for source files; for a packaged plugin, use the release ZIP supplied separately in the conversation.
+
+## Current features
+
+- Configure screen with toggles for the lock indicator and metadata confirmation.
+- Local channel metadata lookup by channel ID, where the client already has the channel object.
+- Creation date from the channel snowflake, last-message-ID timestamp, topic, and last-pin timestamp when available.
+
+## Not yet complete
+
+The runtime-specific channel-row lock icon, automatic inaccessible-channel listing, navigation confirmation hook, and repository-browser install index are not yet implemented or verified on a live Valenced build. This package does not fetch restricted messages or bypass Discord permissions.
+
+## Install
+
+Use the packaged ZIP in the conversation with Valenced's local plugin-file installer. Direct repository-browser installation is not configured yet because Valenced's repository index format has not been verified.
 
 ## Credits
 
-Original implementation: [Lioncat6/revenge-plugins](https://github.com/Lioncat6/revenge-plugins/tree/master/plugins/hidden-channels).
-
-The upstream manifest credits **cloudburst**, **Training Dummy**, and **Lioncat6**. The upstream repository uses **CC0 1.0 Universal**.
-
-## Status
-
-**Not a working port yet.** The Valenced manifest and entrypoint scaffold are committed, but the Revenge-specific permission and navigation hooks have not been adapted or runtime-tested. The current entrypoint is intentionally a no-op; do not install this as a functional plugin yet.
-
-The intended feature is to identify channels the current account cannot view, show a lock indicator, and optionally display channel metadata before navigation. It must not expose hidden messages or bypass Discord server permissions.
-
-## Links
-
-- Upstream source: https://github.com/Lioncat6/revenge-plugins/tree/master/plugins/hidden-channels
-- Original plugin page: https://lioncat6.github.io/revenge-plugins/hidden-channels
+Original implementation credits: Lioncat6, cloudburst, and Training Dummy.
