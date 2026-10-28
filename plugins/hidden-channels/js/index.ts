@@ -185,5 +185,5 @@ export default plugin(function () {
     );
   }
 
-  return { settingsComponent: SettingsPanel };
+  return { SettingsComponent: SettingsPanel };
 });
