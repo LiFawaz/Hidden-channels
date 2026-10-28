@@ -1,22 +1,22 @@
-import { use } from "@valenced/json-storage";
-import { FormSwitch, Page } from "@valenced/components";
+import { useProxy } from "@valenced/json-storage";
+import { FormSection, FormSwitchRow } from "@valenced/discord/design";
 import { storage } from "valenced";
 
 export function Settings() {
-  const state = use(storage); // re-renders when storage updates
+  useProxy(storage);
 
   return (
-    <Page>
-      <FormSwitch
+    <FormSection title="Hidden Channels">
+      <FormSwitchRow
         label="Show lock icon"
-        value={state.showIcon ?? true}
+        value={storage.showIcon ?? true}
         onValueChange={(v: boolean) => (storage.showIcon = v)}
       />
-      <FormSwitch
+      <FormSwitchRow
         label="Show confirmation popup"
-        value={state.showPopup ?? true}
+        value={storage.showPopup ?? true}
         onValueChange={(v: boolean) => (storage.showPopup = v)}
       />
-    </Page>
+    </FormSection>
   );
 }
