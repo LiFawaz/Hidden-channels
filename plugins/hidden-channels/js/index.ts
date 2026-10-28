@@ -1,6 +1,7 @@
 /// <reference types="@valenced/types" />
 
-import { lookupByProps } from "@valenced/modules/finders";
+import { lookupModule } from "@valenced/modules/finders";
+import { withProps } from "@valenced/modules/finders/filters";
 import React from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
@@ -42,9 +43,10 @@ export default plugin(function () {
       }
 
       try {
-        const channelStore = lookupByProps(["getChannel"]) as
-          | { getChannel?: (channelId: string) => any }
-          | undefined;
+        const found = lookupModule(withProps("getChannel"));
+        const channelStore = found.length
+          ? (found[0] as { getChannel?: (channelId: string) => any })
+          : undefined;
         const channel = channelStore?.getChannel?.(id);
 
         if (!channel) {
