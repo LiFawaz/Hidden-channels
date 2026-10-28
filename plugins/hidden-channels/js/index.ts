@@ -1,6 +1,8 @@
 /// <reference types="@valenced/types" />
 
 import React from "react";
+
+declare const bunny: any;
 import { Pressable, Text, TextInput, View, ScrollView } from "react-native";
 
 type ChannelRecord = {
@@ -48,6 +50,86 @@ function relativeLabel(value: unknown): string {
 
 function textValue(value: unknown): string {
   return value === undefined || value === null || value === "" ? "Unavailable" : String(value);
+}
+
+function discoverClientChannels(): { channels: ChannelRecord[]; source: string } {
+  // Read-only discovery from Discord's existing client cache. Never alters permissions
+  // or asks Discord for data the current account is not allowed to receive.
+  try {
+    const metro = typeof bunny !== "undefined" ? bunny?.metro : undefined;
+    if (!metro || typeof metro.findByProps !== "function") {
+      return { channels: [], source: "Valenced module access is unavailable in this runtime." };
+    }
+
+    const store = metro.findByProps("getChannels");
+    if (!store || typeof store.getChannels !== "function") {
+      return { channels: [], source: "Discord's channel cache could not be located." };
+    }
+
+    const root = store.getChannels();
+    const found = new Map<string, any>();
+    const seen = new WeakSet<object>();
+    let visited = 0;
+    const walk = (value: any, depth: number) => {
+      if (!value || typeof value !== "object" || depth > 9 || visited > 50000) return;
+      if (seen.has(value)) return;
+      seen.add(value);
+      visited++;
+      if (!Array.isArray(value) && typeof value.id === "string" &&
+          typeof value.name === "string" &&
+          (/^\d{15,22}$/.test(value.id)) &&
+          (typeof value.type === "number" || typeof value.type === "string" ||
+           typeof value.guild_id === "string" || typeof value.guildId === "string" ||
+           typeof value.parent_id === "string" || typeof value.parentId === "string")) {
+        found.set(value.id, value);
+      }
+      if (value instanceof Map) {
+        for (const [key, child] of value.entries()) { walk(child, depth + 1); if (visited > 50000) break; }
+      } else if (Array.isArray(value)) {
+        for (const child of value) { walk(child, depth + 1); if (visited > 50000) break; }
+      } else {
+        for (const key of Object.keys(value)) {
+          let child: any;
+          try { child = value[key]; } catch { continue; }
+          walk(child, depth + 1);
+          if (visited > 50000) break;
+        }
+      }
+    };
+    walk(root, 0);
+
+    const channels = Array.from(found.values()).map((channel: any) => {
+      const parentId = channel.parent_id ?? channel.parentId;
+      const parent = parentId ? found.get(String(parentId)) : undefined;
+      const guildId = channel.guild_id ?? channel.guildId;
+      const isWithheld = typeof channel.name === "string" &&
+        /^(no access|unknown channel|private channel)$/i.test(channel.name.trim());
+      return {
+        id: String(channel.id),
+        name: isWithheld ? "No Access" : channel.name,
+        category: parent?.name ?? (typeof channel.category === "string" ? channel.category : undefined),
+        categoryId: parentId ? String(parentId) : undefined,
+        position: typeof channel.position === "number" ? channel.position : undefined,
+        topic: typeof channel.topic === "string" ? channel.topic : undefined,
+        createdAt: channel.id,
+        lastMessageAt: channel.lastMessageId ?? channel.last_message_id,
+        lastPinAt: channel.lastPinTimestamp ?? channel.last_pin_timestamp,
+        permissionSummary: isWithheld
+          ? "Discord supplied a placeholder; the real name and withheld fields are unavailable."
+          : (guildId ? "Found in the current client cache. Visibility and metadata depend on Discord's response." : undefined),
+      } as ChannelRecord;
+    }).sort((a, b) =>
+      (a.category ?? "").localeCompare(b.category ?? "") ||
+      (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER) ||
+      a.name.localeCompare(b.name)
+    );
+    return { channels, source: `Scanned the existing client cache and found ${channels.length} channel record(s).` };
+  } catch (error) {
+    return {
+      channels: [],
+      source: error instanceof Error ? `Channel cache scan failed: ${error.message}` : "Channel cache scan failed.",
+    };
+  }
 }
 
 function button(label: string, onPress: () => void, primary = false) {
@@ -109,8 +191,22 @@ export default plugin(function () {
     const [channels, setChannels] = React.useState<ChannelRecord[]>([]);
     const [selected, setSelected] = React.useState<ChannelRecord | null>(null);
     const [detailOnly, setDetailOnly] = React.useState(false);
-    const [status, setStatus] = React.useState("Import a channel metadata export provided by a server administrator to browse channels and their details.");
+    const [status, setStatus] = React.useState("Scanning Discord's existing client channel cache…");
     const [filter, setFilter] = React.useState("");
+
+    function scanClientCache() {
+      const result = discoverClientChannels();
+      setChannels(result.channels);
+      setSelected(null);
+      setDetailOnly(false);
+      setStatus(result.source + (result.channels.some((c) => c.name === "No Access")
+        ? " Some entries are placeholders; this scan cannot recover names Discord withheld."
+        : "") + " Only data already present in the client cache is listed.");
+    }
+
+    React.useEffect(() => {
+      scanClientCache();
+    }, []);
 
     function loadExport() {
       try {
@@ -182,7 +278,7 @@ export default plugin(function () {
 
     return React.createElement(ScrollView, { contentContainerStyle: { padding: 16, gap: 12 } },
       React.createElement(Text, { style: { fontSize: 20, fontWeight: "700" } }, "Hidden Channels"),
-      React.createElement(Text, { style: { opacity: 0.8 } }, "Browse channel metadata in category and position order. To include channels your client cannot see, import a metadata export supplied by an administrator; this plugin will not bypass Discord permissions."),
+      React.createElement(Text, { style: { opacity: 0.8 } }, "Automatically scans the channel records Discord has already supplied to this client, including placeholder records when present. It cannot recover names or metadata Discord withheld and does not bypass permissions."),
       React.createElement(TextInput, {
         value: rawExport,
         onChangeText: setRawExport,
@@ -193,7 +289,8 @@ export default plugin(function () {
         textAlignVertical: "top",
         style: { minHeight: 130, borderWidth: 1, borderColor: "#777", borderRadius: 8, padding: 12 },
       }),
-      button("Load channel metadata", loadExport, true),
+      button("Scan client channel cache", scanClientCache, true),
+      button("Load channel metadata", loadExport),
       button("Load example data", loadExample),
       channels.length ? button("Clear imported data", clearData) : null,
       React.createElement(Text, { style: { opacity: 0.9 } }, status),
