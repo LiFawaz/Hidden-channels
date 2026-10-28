@@ -1,42 +1,49 @@
-import { findByProps, findByName } from "@valenced/metro";
-import { constants, React, ReactNative as RN } from "@valenced/metro/common";
-import { getAssetByName } from "@valenced/ui/assets";
+import { lookupModule } from "@valenced/modules";
 import { after, instead } from "@valenced/patcher";
-import { showConfirmationAlert } from "@valenced/ui/alerts";
+import { getAssetByName } from "@valenced/assets";
+import { showConfirmationAlert } from "@valenced/discord/actions";
+import { React, ReactNative as RN } from "@valenced/react";
 import { storage } from "valenced";
 import { Settings } from "./settings";
 
-const Permissions = findByProps("getChannelPermissions", "can");
-const { ChannelTypes } = findByProps("ChannelTypes") ?? {};
-const { getChannel } =
-  findByProps("getChannel") || findByName("getChannel", false) || {};
+// --- Module lookups (Valenced style) ---
+const [Permissions] = lookupModule(
+  (m) => m?.getChannelPermissions && m?.can
+);
+const [ChannelTypesModule] = lookupModule((m) => m?.ChannelTypes);
+const [ChannelStore] = lookupModule((m) => m?.getChannel);
+
+const ChannelTypes = ChannelTypesModule?.ChannelTypes;
+const getChannel = ChannelStore?.getChannel;
 
 const skipChannels = [
   ChannelTypes?.DM,
   ChannelTypes?.GROUP_DM,
   ChannelTypes?.GUILD_CATEGORY,
-].filter((t) => t !== undefined);
+].filter(Boolean);
 
+// --- Helper: is this channel hidden for the current user? ---
 function isHidden(channel: any): boolean {
   if (!channel || !Permissions?.can) return false;
   if (typeof channel === "string") channel = getChannel?.(channel);
   if (!channel || skipChannels.includes(channel.type)) return false;
 
   const hadRealCheck = Object.prototype.hasOwnProperty.call(channel, "realCheck");
-  const prevRealCheck = channel.realCheck;
+  const prev = channel.realCheck;
 
   try {
     channel.realCheck = true;
-    return !Permissions.can(constants.Permissions.VIEW_CHANNEL, channel);
-  } catch (e) {
-    console.error("[Hidden Channels] Permission check failed:", e);
-    return false;
+    return !Permissions.can(
+      constants.Permissions.VIEW_CHANNEL,
+      channel
+    );
   } finally {
-    if (hadRealCheck) channel.realCheck = prevRealCheck;
+    if (hadRealCheck) channel.realCheck = prev;
     else delete channel.realCheck;
   }
 }
 
+// --- Helper: extract channel ID from a navigation path ---
 function getChannelId(target: unknown): string | undefined {
   if (typeof target !== "string") return undefined;
   const match = target.match(/(\d{15,22})$/);
@@ -50,9 +57,10 @@ export default {
     storage.showIcon ??= true;
     storage.showPopup ??= true;
 
+    // 1) Make hidden channels visible in the sidebar
     if (Permissions) {
       unpatches.push(
-        after("can", Permissions, ([permID, channel]: any[], res: any) => {
+        after("can", Permissions, ([permID, channel], res) => {
           if (!channel?.realCheck && permID === constants.Permissions.VIEW_CHANNEL)
             return true;
           return res;
@@ -62,12 +70,12 @@ export default {
       console.warn("[Hidden Channels] Permissions module not found.");
     }
 
-    const ChannelMessages =
-      findByProps("ChannelMessages") || findByName("ChannelMessages", false);
+    // 2) Lock icon next to hidden channel names
+    const [ChannelMessages] = lookupModule((m) => m?.ChannelMessages);
 
     if (ChannelMessages) {
       unpatches.push(
-        after("default", ChannelMessages, ([props]: any[], ret: any) => {
+        after("default", ChannelMessages, ([props], ret) => {
           const channel = props?.channel;
           if (!storage.showIcon || !channel || !isHidden(channel)) return ret;
 
@@ -89,14 +97,15 @@ export default {
       console.warn("[Hidden Channels] ChannelMessages module not found.");
     }
 
-    const transitionToGuild = findByProps("transitionToGuild");
+    // 3) Confirmation popup before opening a hidden channel
+    const [TransitionModule] = lookupModule((m) => m?.transitionToGuild);
 
-    if (transitionToGuild) {
-      for (const key of Object.keys(transitionToGuild)) {
-        if (typeof (transitionToGuild as any)[key] !== "function") continue;
+    if (TransitionModule) {
+      for (const key of Object.keys(TransitionModule)) {
+        if (typeof TransitionModule[key] !== "function") continue;
 
         unpatches.push(
-          instead(key, transitionToGuild as any, (args: any[], orig: any) => {
+          instead(key, TransitionModule, (args, orig) => {
             if (!storage.showPopup) return orig(...args);
 
             const channelId = getChannelId(args[0]);
@@ -110,7 +119,7 @@ export default {
               onConfirm: () => orig(...args),
             });
 
-            return undefined;
+            return undefined; // navigation deferred until confirm
           })
         );
       }
@@ -130,4 +139,11 @@ export default {
   },
 
   settings: Settings,
+};
+
+// Local constant for Permissions.VIEW_CHANNEL
+const constants = {
+  Permissions: {
+    VIEW_CHANNEL: 1024n, // Discord's VIEW_CHANNEL bit
+  },
 };
