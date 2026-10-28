@@ -1,7 +1,7 @@
 (() => {
 const defaults={showIcon:true,showPopup:true};
 let settings={...defaults};
-function snowflakeDate(id){try{return typeof id==="string"&&/^\d{15,22}$/.test(id)?new Date(Number((BigInt(id)>>22n)+1420070400000n):null}catch{return null}}
+function snowflakeDate(id){try{return typeof id==="string"&&/^\d{15,22}$/.test(id)?new Date(Number((BigInt(id)>>22n)+1420070400000n)):null}catch{return null}}
 function rel(d){if(!d)return"Unavailable";const ms=Date.now()-d.getTime();for(const [n,u] of [[86400000,"day"],[3600000,"hour"],[60000,"minute"],[1000,"second"]])if(Math.abs(ms)>=n){const v=Math.max(1,Math.round(Math.abs(ms)/n));return ms>0?v+" "+u+(v===1?"":"s")+" ago":"in "+v+" "+u+(v===1?"":"s")}return"just now"}
 function fmt(d){return d&&Number.isFinite(d.getTime())?d.toLocaleString()+" ("+rel(d)+")":"Unavailable"}
 function metadata(c){const created=snowflakeDate(c.id),last=snowflakeDate(c.lastMessageId);let pin=null;if(c.lastPinTimestamp!=null){const v=c.lastPinTimestamp;pin=new Date(typeof v==="number"?(v<1e12?v*1000:v):v)}return["Channel: "+(c.name||"Unknown"),"Topic: "+(c.topic||"No topic."),"Creation date: "+fmt(created),"Last message sent: "+(c.lastMessageId?fmt(last):"No messages recorded."),"Last pin: "+(c.lastPinTimestamp!=null?fmt(pin):"No pins recorded.")].join("\n\n")}
