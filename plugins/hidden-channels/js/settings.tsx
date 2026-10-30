@@ -356,9 +356,9 @@ export function SettingsComponent({ api: { jsonStorage: storage } }: Props) {
         Hidden Channels
       </Text>
       <Text style={{ color: "#b9bbbe", fontSize: 13, lineHeight: 19 }}>
-        View channel details from Discord's local cache or import a JSON export from a
-        server administrator. The plugin never overrides permissions or fetches hidden
-        channel messages.
+        Show cached hidden-channel names in the sidebar as locked entries, or import a JSON
+        export from a server administrator. Server permissions are not changed; navigation
+        and message fetching for hidden entries are blocked.
       </Text>
 
       <View style={{ gap: 10 }}>
