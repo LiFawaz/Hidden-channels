@@ -156,8 +156,9 @@ export function scanCachedHiddenChannels(): ChannelScanResult {
       lookupByProps(["getChannels"])
     ) as unknown as ChannelStore | null;
 
-    const permissionStore = lookupByProps(["can", "computePermissions"]) as unknown as
-      PermissionStore | null;
+    const permissionStore = (
+      lookupByProps(["can", "computePermissions"]) ?? lookupByProps(["can"])
+    ) as unknown as PermissionStore | null;
 
     const guildStore = lookupByProps(["getGuildIds", "getGuild"]) as unknown as
       GuildStore | null;
@@ -229,8 +230,21 @@ export function scanCachedHiddenChannels(): ChannelScanResult {
       try {
         canView = permissionStore.can(VIEW_CHANNEL, channel);
       } catch {
-        skipped += 1;
-        continue;
+        try {
+          canView = permissionStore.can(1024, channel);
+        } catch {
+          skipped += 1;
+          continue;
+        }
+      }
+
+      if (typeof canView !== "boolean") {
+        try {
+          canView = permissionStore.can(1024, channel);
+        } catch {
+          skipped += 1;
+          continue;
+        }
       }
 
       if (typeof canView !== "boolean") {
