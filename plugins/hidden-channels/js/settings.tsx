@@ -1,5 +1,15 @@
-import { React, ReactNative as RN } from "@valenced/react";
-import type { PluginApi } from "@valenced/plugins/types";
+import { useState } from "react";
+import type { ComponentProps } from "react";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import type { PluginSettingsComponent } from "@valenced/plugins/types";
 import HiddenChannel from "./HiddenChannel";
 import { scanCachedHiddenChannels } from "./channel-scan";
 
@@ -31,7 +41,8 @@ export const DEFAULT_SETTINGS: HiddenChannelsStorage = {
 };
 
 type PluginOptions = { jsonStorage: HiddenChannelsStorage };
-type SettingsProps = { api: PluginApi<PluginOptions> };
+type Props = ComponentProps<PluginSettingsComponent<PluginOptions>>;
+type Storage = Props["api"]["jsonStorage"];
 type JsonRecord = Record<string, unknown>;
 
 const MAX_IMPORT_CHARACTERS = 500_000;
@@ -166,28 +177,16 @@ function normalizeSettings(value: unknown): HiddenChannelsStorage {
   };
 }
 
-interface NativeAlert {
-  alert?: (
-    title: string,
-    message: string,
-    buttons: Array<{
-      text: string;
-      style?: "cancel" | "destructive";
-      onPress?: () => void;
-    }>
-  ) => void;
-}
-
-export function SettingsComponent({ api }: SettingsProps) {
-  const settings = normalizeSettings(api.jsonStorage.use());
-  const [search, setSearch] = React.useState("");
-  const [importText, setImportText] = React.useState("");
-  const [error, setError] = React.useState("");
-  const [notice, setNotice] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const [scanning, setScanning] = React.useState(false);
+export function SettingsComponent({ api: { jsonStorage: storage } }: Props) {
+  const settings = normalizeSettings(storage.use());
+  const [search, setSearch] = useState("");
+  const [importText, setImportText] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [selectedChannel, setSelectedChannel] =
-    React.useState<ChannelMetadataRecord | null>(null);
+    useState<ChannelMetadataRecord | null>(null);
 
   const term = search.trim().toLowerCase();
   const filteredChannels = settings.channels.filter((channel) => {
@@ -208,7 +207,7 @@ export function SettingsComponent({ api }: SettingsProps) {
     failureMessage: string
   ): Promise<boolean> {
     try {
-      await api.jsonStorage.set(update);
+      await storage.set(update);
       setError("");
       return true;
     } catch (cause) {
@@ -262,7 +261,7 @@ export function SettingsComponent({ api }: SettingsProps) {
       }
 
       const channels = Array.from(merged.values()).slice(0, MAX_CHANNELS);
-      await api.jsonStorage.set({ channels });
+      await storage.set({ channels });
       setSelectedChannel(null);
       setNotice(
         result.channels.length
@@ -299,7 +298,7 @@ export function SettingsComponent({ api }: SettingsProps) {
       }
 
       const channels = Array.from(merged.values()).slice(0, MAX_CHANNELS);
-      await api.jsonStorage.set({ channels });
+      await storage.set({ channels });
       setImportText("");
       setSelectedChannel(null);
       setNotice(`Imported ${imported.length} channel metadata record(s). Existing cached records were kept.`);
@@ -318,7 +317,7 @@ export function SettingsComponent({ api }: SettingsProps) {
     setNotice("");
 
     try {
-      await api.jsonStorage.set({ channels: [] });
+      await storage.set({ channels: [] });
       setSelectedChannel(null);
       setNotice("All imported and cached metadata records were cleared.");
     } catch (cause) {
@@ -330,11 +329,8 @@ export function SettingsComponent({ api }: SettingsProps) {
 
   function openChannel(channel: ChannelMetadataRecord): void {
     if (settings.showConfirmation) {
-      const alertModule = (RN as unknown as { Alert?: NativeAlert }).Alert;
-
-      if (typeof alertModule?.alert === "function") {
-        try {
-          alertModule.alert(
+      try {
+          Alert.alert(
             "Hidden Channel",
             "This opens a metadata-only view. Discord permissions remain unchanged and no channel messages will be requested.",
             [
@@ -346,9 +342,8 @@ export function SettingsComponent({ api }: SettingsProps) {
             ]
           );
           return;
-        } catch {
-          // Use the in-settings details panel when the native dialog is unavailable.
-        }
+      } catch {
+        // Use the in-settings details panel when the native dialog is unavailable.
       }
     }
 
@@ -356,22 +351,22 @@ export function SettingsComponent({ api }: SettingsProps) {
   }
 
   return (
-    <RN.ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
-      <RN.Text style={{ color: "#f2f3f5", fontSize: 20, fontWeight: "700" }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+      <Text style={{ color: "#f2f3f5", fontSize: 20, fontWeight: "700" }}>
         Hidden Channels
-      </RN.Text>
-      <RN.Text style={{ color: "#b9bbbe", fontSize: 13, lineHeight: 19 }}>
+      </Text>
+      <Text style={{ color: "#b9bbbe", fontSize: 13, lineHeight: 19 }}>
         View channel details from Discord's local cache or import a JSON export from a
         server administrator. The plugin never overrides permissions or fetches hidden
         channel messages.
-      </RN.Text>
+      </Text>
 
-      <RN.View style={{ gap: 10 }}>
-        <RN.Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
+      <View style={{ gap: 10 }}>
+        <Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
           Configure
-        </RN.Text>
+        </Text>
 
-        <RN.View
+        <View
           style={{
             flexDirection: "row",
             alignItems: "center",
@@ -379,21 +374,21 @@ export function SettingsComponent({ api }: SettingsProps) {
             gap: 12,
           }}
         >
-          <RN.View style={{ flex: 1, gap: 3 }}>
-            <RN.Text style={{ color: "#dcddde", fontWeight: "600" }}>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={{ color: "#dcddde", fontWeight: "600" }}>
               Show Lock Icon
-            </RN.Text>
-            <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+            </Text>
+            <Text style={{ color: "#b9bbbe", fontSize: 12 }}>
               Show a lock beside hidden channel names in this list.
-            </RN.Text>
-          </RN.View>
-          <RN.Switch
+            </Text>
+          </View>
+          <Switch
             value={settings.showLockIcon}
             onValueChange={(value) => toggle("showLockIcon", value)}
           />
-        </RN.View>
+        </View>
 
-        <RN.View
+        <View
           style={{
             flexDirection: "row",
             alignItems: "center",
@@ -401,22 +396,22 @@ export function SettingsComponent({ api }: SettingsProps) {
             gap: 12,
           }}
         >
-          <RN.View style={{ flex: 1, gap: 3 }}>
-            <RN.Text style={{ color: "#dcddde", fontWeight: "600" }}>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={{ color: "#dcddde", fontWeight: "600" }}>
               Show Popup on Hidden Channels
-            </RN.Text>
-            <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+            </Text>
+            <Text style={{ color: "#b9bbbe", fontSize: 12 }}>
               Ask before opening a metadata details panel.
-            </RN.Text>
-          </RN.View>
-          <RN.Switch
+            </Text>
+          </View>
+          <Switch
             value={settings.showConfirmation}
             onValueChange={(value) => toggle("showConfirmation", value)}
           />
-        </RN.View>
-      </RN.View>
+        </View>
+      </View>
 
-      <RN.Pressable
+      <Pressable
         disabled={scanning || saving}
         onPress={() => void scanLocalCache()}
         style={{
@@ -427,20 +422,20 @@ export function SettingsComponent({ api }: SettingsProps) {
           opacity: scanning || saving ? 0.7 : 1,
         }}
       >
-        <RN.Text style={{ color: "#ffffff", fontWeight: "600" }}>
+        <Text style={{ color: "#ffffff", fontWeight: "600" }}>
           {scanning ? "Scanning local cache..." : "Scan Cached Channel Records"}
-        </RN.Text>
-      </RN.Pressable>
-      <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+        </Text>
+      </Pressable>
+      <Text style={{ color: "#b9bbbe", fontSize: 12 }}>
         This scan only reads channel objects already present in Discord's local stores.
         It does not make network requests or change permission results.
-      </RN.Text>
+      </Text>
 
-      <RN.View style={{ gap: 8 }}>
-        <RN.Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
+      <View style={{ gap: 8 }}>
+        <Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
           Import Administrator Metadata (JSON)
-        </RN.Text>
-        <RN.TextInput
+        </Text>
+        <TextInput
           value={importText}
           onChangeText={setImportText}
           multiline
@@ -456,7 +451,7 @@ export function SettingsComponent({ api }: SettingsProps) {
             textAlignVertical: "top",
           }}
         />
-        <RN.Pressable
+        <Pressable
           disabled={saving || scanning}
           onPress={() => void importChannels()}
           style={{
@@ -467,25 +462,25 @@ export function SettingsComponent({ api }: SettingsProps) {
             opacity: saving || scanning ? 0.7 : 1,
           }}
         >
-          <RN.Text style={{ color: "#ffffff", fontWeight: "600" }}>
+          <Text style={{ color: "#ffffff", fontWeight: "600" }}>
             {saving ? "Saving..." : "Import metadata"}
-          </RN.Text>
-        </RN.Pressable>
-      </RN.View>
+          </Text>
+        </Pressable>
+      </View>
 
-      {error ? <RN.Text style={{ color: "#ed4245" }}>{error}</RN.Text> : null}
-      {notice ? <RN.Text style={{ color: "#57f287", lineHeight: 19 }}>{notice}</RN.Text> : null}
+      {error ? <Text style={{ color: "#ed4245" }}>{error}</Text> : null}
+      {notice ? <Text style={{ color: "#57f287", lineHeight: 19 }}>{notice}</Text> : null}
 
-      <RN.View style={{ gap: 3 }}>
-        <RN.Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
+      <View style={{ gap: 3 }}>
+        <Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
           Channels ({settings.channels.length})
-        </RN.Text>
-        <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+        </Text>
+        <Text style={{ color: "#b9bbbe", fontSize: 12 }}>
           {cachedCount} from local cache · {importedCount} imported
-        </RN.Text>
-      </RN.View>
+        </Text>
+      </View>
 
-      <RN.TextInput
+      <TextInput
         value={search}
         onChangeText={setSearch}
         placeholder="Search by channel, category, or ID"
@@ -500,7 +495,7 @@ export function SettingsComponent({ api }: SettingsProps) {
 
       {visibleChannels.length ? (
         visibleChannels.map((channel) => (
-          <RN.Pressable
+          <Pressable
             key={channel.id}
             onPress={() => openChannel(channel)}
             style={{
@@ -509,25 +504,25 @@ export function SettingsComponent({ api }: SettingsProps) {
               backgroundColor: "#2b2d31",
             }}
           >
-            <RN.Text style={{ color: "#f2f3f5", fontWeight: "600" }}>
+            <Text style={{ color: "#f2f3f5", fontWeight: "600" }}>
               {settings.showLockIcon ? "🔒 " : ""}
               {channel.name}
-            </RN.Text>
-            <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+            </Text>
+            <Text style={{ color: "#b9bbbe", fontSize: 12 }}>
               {channel.category ?? "No category"} · {String(channel.type ?? "Unknown type")} · {channel.source === "cache" ? "Cached" : "Imported"}
-            </RN.Text>
-          </RN.Pressable>
+            </Text>
+          </Pressable>
         ))
       ) : (
-        <RN.Text style={{ color: "#b9bbbe" }}>
+        <Text style={{ color: "#b9bbbe" }}>
           {settings.channels.length ? "No matching channels." : "No channel records yet. Scan the local cache or import a JSON export."}
-        </RN.Text>
+        </Text>
       )}
 
       {filteredChannels.length > visibleChannels.length ? (
-        <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+        <Text style={{ color: "#b9bbbe", fontSize: 12 }}>
           Showing the first 200 matches. Refine your search to narrow the results.
-        </RN.Text>
+        </Text>
       ) : null}
 
       {selectedChannel ? (
@@ -538,7 +533,7 @@ export function SettingsComponent({ api }: SettingsProps) {
       ) : null}
 
       {settings.channels.length ? (
-        <RN.Pressable
+        <Pressable
           disabled={saving || scanning}
           onPress={() => void clearMetadata()}
           style={{
@@ -550,9 +545,9 @@ export function SettingsComponent({ api }: SettingsProps) {
             opacity: saving || scanning ? 0.5 : 1,
           }}
         >
-          <RN.Text style={{ color: "#ed4245" }}>Clear all metadata</RN.Text>
-        </RN.Pressable>
+          <Text style={{ color: "#ed4245" }}>Clear all metadata</Text>
+        </Pressable>
       ) : null}
-    </RN.ScrollView>
+    </ScrollView>
   );
 }
