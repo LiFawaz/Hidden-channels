@@ -55,8 +55,8 @@ const SKIPPED_CHANNEL_TYPES = new Set([1, 3, 4]);
 const channelStore = Stores.ChannelStore as unknown as ChannelStore;
 const realPermissionChecks = new WeakSet<object>();
 const disposers = new Set<() => void>();
-const patchedListModules = new WeakSet<object>();
-const patchedRowTypes = new WeakSet<object>();
+let patchedListModules = new WeakSet<object>();
+let patchedRowTypes = new WeakSet<object>();
 
 function own(cleanup: Cleanup, unpatch: () => unknown): void {
   let active = true;
@@ -80,6 +80,8 @@ function own(cleanup: Cleanup, unpatch: () => unknown): void {
 function disposeAll(): void {
   for (const dispose of Array.from(disposers)) dispose();
   disposers.clear();
+  patchedListModules = new WeakSet<object>();
+  patchedRowTypes = new WeakSet<object>();
 }
 
 function isChannel(value: unknown): value is Channel {
@@ -167,7 +169,7 @@ function showBlockedNotice(
       `#${channel.name}`,
       ...details,
       "",
-      "This entry is display-only. Discord access and messages remain unavailable.",
+      "This entry is display-only. Tapping it will not open the channel or load messages.",
     ].join("\n"),
     [{ text: "OK" }],
   );
@@ -215,8 +217,10 @@ function findChannelId(value: unknown, depth = 0): string | undefined {
   if (depth > 3 || value == null) return undefined;
 
   if (typeof value === "string") {
-    const match = value.match(/\b(\d{15,22})\b/);
-    return match?.[1];
+    const suffix = value.match(/(\d{15,22})\/?$/);
+    if (suffix?.[1]) return suffix[1];
+
+    return /^\d{15,22}$/.test(value) ? value : undefined;
   }
 
   if (Array.isArray(value)) {
