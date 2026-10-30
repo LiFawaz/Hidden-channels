@@ -5,7 +5,7 @@
   "description": "Display cached hidden channels as locked sidebar entries without opening channels or loading messages.",
   "author": "LiFawaz (https://github.com/LiFawaz)",
   "contributors": ["Lioncat6", "cloudburst", "Training Dummy"],
-  "version": "3.0.4",
+  "version": "3.0.5",
   "dependencies": {
     "valenced.api": { "version": ">=1 <2" },
     "discord": { "version": "*" }
