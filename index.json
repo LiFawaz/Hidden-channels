@@ -5,7 +5,7 @@
   "plugins": {
     "com.lifawaz.hidden-channels": {
       "name": "Hidden Channels",
-      "description": "Browse administrator-supplied channel metadata without overriding Discord permissions or loading messages.",
+      "description": "Browse cached hidden-channel metadata and administrator exports without overriding Discord permissions or loading messages.",
       "author": "LiFawaz (https://github.com/LiFawaz)",
       "contributors": [
         "Lioncat6",
@@ -13,13 +13,13 @@
         "Training Dummy"
       ],
       "channels": {
-        "latest": "3.0.2"
+        "latest": "3.0.3"
       },
       "versions": {
-        "3.0.2": {
-          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@3.0.2.zip",
-          "sha256": "bf3ed09a3f88970b415fe9d8f9c26a18c4fd053cc0f07983e1d5717df8c7028c",
-          "size": 5459,
+        "3.0.3": {
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@3.0.3.zip",
+          "sha256": "d11224f794a5166ef52eafdbbc81e1467474ab8ec5570924db5213f181de6aa5",
+          "size": 5466,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
