@@ -1,5 +1,7 @@
 import { React, ReactNative as RN } from "@valenced/react";
 import type { PluginApi } from "@valenced/plugins/types";
+import HiddenChannel from "./HiddenChannel";
+import { scanCachedHiddenChannels } from "./channel-scan";
 
 export interface ChannelMetadataRecord {
   id: string;
@@ -13,6 +15,7 @@ export interface ChannelMetadataRecord {
   requiredRoles?: string[];
   requiredUsers?: string[];
   permissionSummary?: string;
+  source?: "cache" | "import";
 }
 
 export interface HiddenChannelsStorage {
@@ -64,7 +67,10 @@ function readStringList(value: unknown): string[] | undefined {
   return result.length ? result : undefined;
 }
 
-function normalizeChannel(value: unknown): ChannelMetadataRecord | null {
+function normalizeChannel(
+  value: unknown,
+  preserveSource = false
+): ChannelMetadataRecord | null {
   if (!isRecord(value)) return null;
 
   const id = readText(value.id, 32);
@@ -90,15 +96,20 @@ function normalizeChannel(value: unknown): ChannelMetadataRecord | null {
     requiredRoles: readStringList(value.requiredRoles),
     requiredUsers: readStringList(value.requiredUsers),
     permissionSummary: readText(value.permissionSummary, 1_000),
+    source: preserveSource && value.source === "cache" ? "cache" : "import",
   };
 }
 
-function normalizeChannels(rows: unknown[]): ChannelMetadataRecord[] {
+function normalizeChannels(
+  rows: unknown[],
+  preserveSource = false
+): ChannelMetadataRecord[] {
   const unique = new Map<string, ChannelMetadataRecord>();
 
-  for (const row of rows.slice(0, MAX_CHANNELS)) {
-    const channel = normalizeChannel(row);
+  for (const row of rows.slice(0, MAX_CHANNELS * 5)) {
+    const channel = normalizeChannel(row, preserveSource);
     if (channel) unique.set(channel.id, channel);
+    if (unique.size >= MAX_CHANNELS) break;
   }
 
   return Array.from(unique.values());
@@ -139,7 +150,7 @@ function parseMetadata(input: string): ChannelMetadataRecord[] {
 function normalizeSettings(value: unknown): HiddenChannelsStorage {
   const saved = isRecord(value) ? value : {};
   const channels = Array.isArray(saved.channels)
-    ? normalizeChannels(saved.channels)
+    ? normalizeChannels(saved.channels, true)
     : DEFAULT_SETTINGS.channels;
 
   return {
@@ -153,32 +164,6 @@ function normalizeSettings(value: unknown): HiddenChannelsStorage {
         : DEFAULT_SETTINGS.showConfirmation,
     channels,
   };
-}
-
-function getChannelDetails(channel: ChannelMetadataRecord): string {
-  const lines = [
-    \`Name: \${channel.name}\`,
-    channel.category ? \`Category: \${channel.category}\` : undefined,
-    channel.type !== undefined ? \`Type: \${String(channel.type)}\` : undefined,
-    channel.topic ? \`Topic: \${channel.topic}\` : undefined,
-    channel.createdAt ? \`Created: \${channel.createdAt}\` : undefined,
-    channel.lastMessageAt ? \`Last message: \${channel.lastMessageAt}\` : undefined,
-    channel.lastPinAt ? \`Last pin: \${channel.lastPinAt}\` : undefined,
-    channel.requiredRoles?.length
-      ? \`Roles: \${channel.requiredRoles.join(", ")}\`
-      : undefined,
-    channel.requiredUsers?.length
-      ? \`Users: \${channel.requiredUsers.join(", ")}\`
-      : undefined,
-    channel.permissionSummary
-      ? \`Permissions: \${channel.permissionSummary}\`
-      : undefined,
-    \`ID: \${channel.id}\`,
-    "",
-    "Imported metadata only. This does not grant channel access or provide channel messages.",
-  ];
-
-  return lines.filter((line): line is string => typeof line === "string").join("\n");
 }
 
 interface NativeAlert {
@@ -200,6 +185,7 @@ export function SettingsComponent({ api }: SettingsProps) {
   const [error, setError] = React.useState("");
   const [notice, setNotice] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [scanning, setScanning] = React.useState(false);
   const [selectedChannel, setSelectedChannel] =
     React.useState<ChannelMetadataRecord | null>(null);
 
@@ -214,6 +200,8 @@ export function SettingsComponent({ api }: SettingsProps) {
     );
   });
   const visibleChannels = filteredChannels.slice(0, 200);
+  const cachedCount = settings.channels.filter((channel) => channel.source === "cache").length;
+  const importedCount = settings.channels.length - cachedCount;
 
   async function saveSettings(
     update: Partial<HiddenChannelsStorage>,
@@ -242,19 +230,79 @@ export function SettingsComponent({ api }: SettingsProps) {
     void saveSettings(update, "Could not save this setting.");
   }
 
+  async function scanLocalCache(): Promise<void> {
+    if (scanning || saving) return;
+
+    setScanning(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const result = scanCachedHiddenChannels();
+
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      const merged = new Map<string, ChannelMetadataRecord>();
+      for (const channel of settings.channels) {
+        if (channel.source !== "cache") merged.set(channel.id, channel);
+      }
+
+      for (const channel of result.channels) {
+        const previous = merged.get(channel.id);
+        merged.set(channel.id, {
+          ...previous,
+          ...channel,
+          requiredRoles: previous?.requiredRoles,
+          requiredUsers: previous?.requiredUsers,
+          permissionSummary: previous?.permissionSummary,
+        });
+      }
+
+      const channels = Array.from(merged.values()).slice(0, MAX_CHANNELS);
+      await api.jsonStorage.set({ channels });
+      setSelectedChannel(null);
+      setNotice(
+        result.channels.length
+          ? `Found ${result.channels.length} hidden channel record(s) in local cache. Checked ${result.scanned} cached channel(s).`
+          : `No hidden channel records were found in the local cache. Checked ${result.scanned} channel(s).`
+      );
+
+      if (result.skipped > 0) {
+        setNotice((current) => `${current} Skipped ${result.skipped} channel(s) because permission checks failed.`);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The local channel scan failed.");
+    } finally {
+      setScanning(false);
+    }
+  }
+
   async function importChannels(): Promise<void> {
-    if (saving) return;
+    if (saving || scanning) return;
 
     setSaving(true);
     setError("");
     setNotice("");
 
     try {
-      const channels = parseMetadata(importText);
+      const imported = parseMetadata(importText);
+      const merged = new Map<string, ChannelMetadataRecord>();
+
+      for (const channel of settings.channels) {
+        if (channel.source === "cache") merged.set(channel.id, channel);
+      }
+      for (const channel of imported) {
+        merged.set(channel.id, channel);
+      }
+
+      const channels = Array.from(merged.values()).slice(0, MAX_CHANNELS);
       await api.jsonStorage.set({ channels });
       setImportText("");
       setSelectedChannel(null);
-      setNotice(\`Imported \${channels.length} channel metadata record(s).\`);
+      setNotice(`Imported ${imported.length} channel metadata record(s). Existing cached records were kept.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not import metadata.");
     } finally {
@@ -263,7 +311,7 @@ export function SettingsComponent({ api }: SettingsProps) {
   }
 
   async function clearMetadata(): Promise<void> {
-    if (saving) return;
+    if (saving || scanning) return;
 
     setSaving(true);
     setError("");
@@ -272,9 +320,9 @@ export function SettingsComponent({ api }: SettingsProps) {
     try {
       await api.jsonStorage.set({ channels: [] });
       setSelectedChannel(null);
-      setNotice("Imported metadata cleared.");
+      setNotice("All imported and cached metadata records were cleared.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not clear imported metadata.");
+      setError(cause instanceof Error ? cause.message : "Could not clear metadata.");
     } finally {
       setSaving(false);
     }
@@ -287,8 +335,8 @@ export function SettingsComponent({ api }: SettingsProps) {
       if (typeof alertModule?.alert === "function") {
         try {
           alertModule.alert(
-            "Hidden Channel Metadata",
-            "This entry contains imported metadata only. It does not grant channel access, and no messages will load.",
+            "Hidden Channel",
+            "This opens a metadata-only view. Discord permissions remain unchanged and no channel messages will be requested.",
             [
               { text: "Cancel", style: "cancel" },
               {
@@ -299,7 +347,7 @@ export function SettingsComponent({ api }: SettingsProps) {
           );
           return;
         } catch {
-          // Fall back to the inline details view if the native dialog is unavailable.
+          // Use the in-settings details panel when the native dialog is unavailable.
         }
       }
     }
@@ -309,86 +357,134 @@ export function SettingsComponent({ api }: SettingsProps) {
 
   return (
     <RN.ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
-      <RN.Text style={{ color: "#f2f3f5", fontSize: 18, fontWeight: "700" }}>
+      <RN.Text style={{ color: "#f2f3f5", fontSize: 20, fontWeight: "700" }}>
         Hidden Channels
       </RN.Text>
       <RN.Text style={{ color: "#b9bbbe", fontSize: 13, lineHeight: 19 }}>
-        Browse channel metadata from a JSON export supplied by a server administrator.
-        This plugin does not override Discord permissions, retrieve hidden channel data,
-        or load messages.
+        View channel details from Discord's local cache or import a JSON export from a
+        server administrator. The plugin never overrides permissions or fetches hidden
+        channel messages.
       </RN.Text>
 
-      <RN.View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <RN.Text style={{ color: "#dcddde", flex: 1 }}>Show lock icon</RN.Text>
-        <RN.Switch
-          value={settings.showLockIcon}
-          onValueChange={(value) => toggle("showLockIcon", value)}
-        />
-      </RN.View>
-
-      <RN.View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <RN.Text style={{ color: "#dcddde", flex: 1 }}>
-          Show confirmation before viewing metadata
+      <RN.View style={{ gap: 10 }}>
+        <RN.Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
+          Configure
         </RN.Text>
-        <RN.Switch
-          value={settings.showConfirmation}
-          onValueChange={(value) => toggle("showConfirmation", value)}
-        />
+
+        <RN.View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <RN.View style={{ flex: 1, gap: 3 }}>
+            <RN.Text style={{ color: "#dcddde", fontWeight: "600" }}>
+              Show Lock Icon
+            </RN.Text>
+            <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+              Show a lock beside hidden channel names in this list.
+            </RN.Text>
+          </RN.View>
+          <RN.Switch
+            value={settings.showLockIcon}
+            onValueChange={(value) => toggle("showLockIcon", value)}
+          />
+        </RN.View>
+
+        <RN.View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <RN.View style={{ flex: 1, gap: 3 }}>
+            <RN.Text style={{ color: "#dcddde", fontWeight: "600" }}>
+              Show Popup on Hidden Channels
+            </RN.Text>
+            <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+              Ask before opening a metadata details panel.
+            </RN.Text>
+          </RN.View>
+          <RN.Switch
+            value={settings.showConfirmation}
+            onValueChange={(value) => toggle("showConfirmation", value)}
+          />
+        </RN.View>
       </RN.View>
 
-      <RN.Text style={{ color: "#f2f3f5", fontWeight: "600" }}>
-        Import administrator metadata (JSON)
-      </RN.Text>
-      <RN.TextInput
-        value={importText}
-        onChangeText={setImportText}
-        multiline
-        textAlignVertical="top"
-        placeholder={'Paste {"channels":[{"id":"...","name":"..."}]} here'}
-        placeholderTextColor="#72767d"
-        style={{
-          color: "#f2f3f5",
-          backgroundColor: "#2b2d31",
-          borderRadius: 8,
-          minHeight: 120,
-          padding: 12,
-          textAlignVertical: "top",
-        }}
-      />
       <RN.Pressable
-        disabled={saving}
-        onPress={() => void importChannels()}
+        disabled={scanning || saving}
+        onPress={() => void scanLocalCache()}
         style={{
-          backgroundColor: saving ? "#4e535c" : "#5865f2",
+          backgroundColor: scanning || saving ? "#4e535c" : "#5865f2",
           padding: 12,
           borderRadius: 8,
           alignItems: "center",
-          opacity: saving ? 0.7 : 1,
+          opacity: scanning || saving ? 0.7 : 1,
         }}
       >
         <RN.Text style={{ color: "#ffffff", fontWeight: "600" }}>
-          {saving ? "Saving..." : "Import metadata"}
+          {scanning ? "Scanning local cache..." : "Scan Cached Channel Records"}
         </RN.Text>
       </RN.Pressable>
+      <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+        This scan only reads channel objects already present in Discord's local stores.
+        It does not make network requests or change permission results.
+      </RN.Text>
+
+      <RN.View style={{ gap: 8 }}>
+        <RN.Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
+          Import Administrator Metadata (JSON)
+        </RN.Text>
+        <RN.TextInput
+          value={importText}
+          onChangeText={setImportText}
+          multiline
+          textAlignVertical="top"
+          placeholder={'Paste {"channels":[{"id":"...","name":"..."}]} here'}
+          placeholderTextColor="#72767d"
+          style={{
+            color: "#f2f3f5",
+            backgroundColor: "#2b2d31",
+            borderRadius: 8,
+            minHeight: 120,
+            padding: 12,
+            textAlignVertical: "top",
+          }}
+        />
+        <RN.Pressable
+          disabled={saving || scanning}
+          onPress={() => void importChannels()}
+          style={{
+            backgroundColor: saving || scanning ? "#4e535c" : "#3f4147",
+            padding: 12,
+            borderRadius: 8,
+            alignItems: "center",
+            opacity: saving || scanning ? 0.7 : 1,
+          }}
+        >
+          <RN.Text style={{ color: "#ffffff", fontWeight: "600" }}>
+            {saving ? "Saving..." : "Import metadata"}
+          </RN.Text>
+        </RN.Pressable>
+      </RN.View>
 
       {error ? <RN.Text style={{ color: "#ed4245" }}>{error}</RN.Text> : null}
-      {notice ? <RN.Text style={{ color: "#57f287" }}>{notice}</RN.Text> : null}
+      {notice ? <RN.Text style={{ color: "#57f287", lineHeight: 19 }}>{notice}</RN.Text> : null}
 
-      <RN.Text style={{ color: "#f2f3f5", fontWeight: "600" }}>
-        Imported channels ({settings.channels.length})
-      </RN.Text>
+      <RN.View style={{ gap: 3 }}>
+        <RN.Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "700" }}>
+          Channels ({settings.channels.length})
+        </RN.Text>
+        <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
+          {cachedCount} from local cache · {importedCount} imported
+        </RN.Text>
+      </RN.View>
+
       <RN.TextInput
         value={search}
         onChangeText={setSearch}
@@ -418,13 +514,13 @@ export function SettingsComponent({ api }: SettingsProps) {
               {channel.name}
             </RN.Text>
             <RN.Text style={{ color: "#b9bbbe", fontSize: 12 }}>
-              {channel.category ?? "No category"} · {String(channel.type ?? "Unknown type")}
+              {channel.category ?? "No category"} · {String(channel.type ?? "Unknown type")} · {channel.source === "cache" ? "Cached" : "Imported"}
             </RN.Text>
           </RN.Pressable>
         ))
       ) : (
         <RN.Text style={{ color: "#b9bbbe" }}>
-          {settings.channels.length ? "No matching channels." : "No metadata imported yet."}
+          {settings.channels.length ? "No matching channels." : "No channel records yet. Scan the local cache or import a JSON export."}
         </RN.Text>
       )}
 
@@ -435,37 +531,15 @@ export function SettingsComponent({ api }: SettingsProps) {
       ) : null}
 
       {selectedChannel ? (
-        <RN.View
-          style={{
-            padding: 12,
-            borderRadius: 8,
-            backgroundColor: "#2b2d31",
-            gap: 10,
-          }}
-        >
-          <RN.Text style={{ color: "#f2f3f5", fontWeight: "700" }}>
-            Channel metadata
-          </RN.Text>
-          <RN.Text style={{ color: "#dcddde", lineHeight: 20 }}>
-            {getChannelDetails(selectedChannel)}
-          </RN.Text>
-          <RN.Pressable
-            onPress={() => setSelectedChannel(null)}
-            style={{
-              padding: 10,
-              borderRadius: 8,
-              backgroundColor: "#3f4147",
-              alignItems: "center",
-            }}
-          >
-            <RN.Text style={{ color: "#ffffff" }}>Close details</RN.Text>
-          </RN.Pressable>
-        </RN.View>
+        <HiddenChannel
+          channel={selectedChannel}
+          onClose={() => setSelectedChannel(null)}
+        />
       ) : null}
 
       {settings.channels.length ? (
         <RN.Pressable
-          disabled={saving}
+          disabled={saving || scanning}
           onPress={() => void clearMetadata()}
           style={{
             padding: 12,
@@ -473,10 +547,10 @@ export function SettingsComponent({ api }: SettingsProps) {
             borderWidth: 1,
             borderColor: "#ed4245",
             alignItems: "center",
-            opacity: saving ? 0.5 : 1,
+            opacity: saving || scanning ? 0.5 : 1,
           }}
         >
-          <RN.Text style={{ color: "#ed4245" }}>Clear imported metadata</RN.Text>
+          <RN.Text style={{ color: "#ed4245" }}>Clear all metadata</RN.Text>
         </RN.Pressable>
       ) : null}
     </RN.ScrollView>
