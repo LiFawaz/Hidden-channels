@@ -331,17 +331,28 @@ export default plugin<PluginOptions>({
     const permissionModule = (
       lookupModule(
         withProps<PermissionStore>("can", "getChannelPermissions"),
+        { initialize: false },
       )[0] ??
-      lookupModule(withProps<PermissionStore>("can"))[0]
+      lookupModule(
+        withProps<PermissionStore>("can"),
+        { initialize: false },
+      )[0]
     ) as PermissionStore | undefined;
 
     const transitionModule = lookupModule(
       withProps<Record<string, unknown>>("transitionToGuild"),
+      { initialize: false },
     )[0] as Record<string, unknown> | undefined;
 
     const fetcher = (
-      lookupModule(withProps<Record<string, unknown>>("stores", "fetchMessages"))[0] ??
-      lookupModule(withProps<Record<string, unknown>>("fetchMessages"))[0]
+      lookupModule(
+        withProps<Record<string, unknown>>("stores", "fetchMessages"),
+        { initialize: false },
+      )[0] ??
+      lookupModule(
+        withProps<Record<string, unknown>>("fetchMessages"),
+        { initialize: false },
+      )[0]
     ) as Record<string, unknown> | undefined;
 
     if (!permissionModule || typeof permissionModule.can !== "function") {
@@ -403,7 +414,7 @@ export default plugin<PluginOptions>({
       }),
     );
 
-    const channelMessages = lookupModule(withName("ChannelMessages"))[0] as
+    const channelMessages = lookupModule(withName("ChannelMessages"), { initialize: false })[0] as
       | Record<string, unknown>
       | undefined;
 
