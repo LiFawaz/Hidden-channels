@@ -1,5 +1,5 @@
-import { Stores } from "@valenced/discord/flux";
-import { getModules, lookupModule } from "@valenced/modules/finders";
+import { getStore, Stores } from "@valenced/discord/flux";
+import { getModules } from "@valenced/modules/finders";
 import { withName, withProps } from "@valenced/modules/finders/filters";
 import { after, instead } from "@valenced/patcher";
 import { createElement, isValidElement } from "react";
@@ -190,7 +190,6 @@ function findRow(node: ReactNode): ReactElement<RowProps> | undefined {
 
   const rowType = node.type as { type?: unknown };
   if (
-    "isSuggestedSection" in node.props &&
     node.props.channel != null &&
     typeof rowType?.type === "function"
   ) {
@@ -328,103 +327,31 @@ export default plugin<PluginOptions>({
       return;
     }
 
-    const permissionModule = (
-      lookupModule(
-        withProps<PermissionStore>("can", "getChannelPermissions"),
-        { initialize: false },
-      )[0] ??
-      lookupModule(
-        withProps<PermissionStore>("can"),
-        { initialize: false },
-      )[0]
-    ) as PermissionStore | undefined;
+    let permissionModule: PermissionStore | undefined;
+    let transitionModule: Record<string, unknown> | undefined;
+    let fetcher: Record<string, unknown> | undefined;
+    let channelMessages: Record<string, unknown> | undefined;
+    let activated = false;
+    let channelMessagesPatched = false;
 
-    const transitionModule = lookupModule(
-      withProps<Record<string, unknown>>("transitionToGuild"),
-      { initialize: false },
-    )[0] as Record<string, unknown> | undefined;
+    const patchChannelMessages = () => {
+      if (
+        !activated ||
+        !permissionModule ||
+        !channelMessages ||
+        channelMessagesPatched ||
+        typeof channelMessages.default !== "function"
+      ) {
+        return;
+      }
 
-    const fetcher = (
-      lookupModule(
-        withProps<Record<string, unknown>>("stores", "fetchMessages"),
-        { initialize: false },
-      )[0] ??
-      lookupModule(
-        withProps<Record<string, unknown>>("fetchMessages"),
-        { initialize: false },
-      )[0]
-    ) as Record<string, unknown> | undefined;
-
-    if (!permissionModule || typeof permissionModule.can !== "function") {
-      console.warn("[HiddenChannels] PermissionStore was not found; display-only mode was not enabled.");
-      return;
-    }
-
-    if (!transitionModule) {
-      console.warn("[HiddenChannels] Navigation module was not found; display-only mode was not enabled.");
-      return;
-    }
-
-    if (!fetcher || typeof fetcher.fetchMessages !== "function") {
-      console.warn("[HiddenChannels] Message-fetch module was not found; display-only mode was not enabled.");
-      return;
-    }
-
-    let navigationPatches = 0;
-
-    // Install the blockers before allowing the channel list to display hidden rows.
-    for (const [key, candidate] of Object.entries(transitionModule)) {
-      if (typeof candidate !== "function") continue;
-
-      own(
-        cleanup,
-        instead(transitionModule, key, function (args, original) {
-          const channelId = findChannelId(args[0]);
-          const channel = channelId ? isHidden(channelId, permissionModule) : undefined;
-
-          if (channel) {
-            showBlockedNotice(channel, jsonStorage);
-            return undefined;
-          }
-
-          return Reflect.apply(original, this, args);
-        }),
-      );
-      navigationPatches += 1;
-    }
-
-    if (navigationPatches === 0) {
-      disposeAll();
-      console.warn("[HiddenChannels] No navigation handlers were patchable; display-only mode was not enabled.");
-      return;
-    }
-
-    own(
-      cleanup,
-      instead(fetcher, "fetchMessages", function (args, original) {
-        const channelId = findChannelId(args);
-        const channel = channelId ? isHidden(channelId, permissionModule) : undefined;
-
-        if (channel) {
-          showBlockedNotice(channel, jsonStorage);
-          return undefined;
-        }
-
-        return Reflect.apply(original, this, args);
-      }),
-    );
-
-    const channelMessages = lookupModule(withName("ChannelMessages"), { initialize: false })[0] as
-      | Record<string, unknown>
-      | undefined;
-
-    if (channelMessages && typeof channelMessages.default === "function") {
+      channelMessagesPatched = true;
       own(
         cleanup,
         instead(channelMessages, "default", function (args, original) {
           const props = args[0] as { channel?: unknown } | undefined;
           const channel = props?.channel
-            ? isHidden(props.channel, permissionModule)
+            ? isHidden(props.channel, permissionModule!)
             : undefined;
 
           if (channel) {
@@ -437,40 +364,146 @@ export default plugin<PluginOptions>({
           return Reflect.apply(original, this, args);
         }),
       );
-    }
+    };
 
-    // Only after navigation and message-fetch blockers are installed do we
-    // adjust the client's VIEW_CHANNEL result so its sidebar can render rows.
+    const activateWhenReady = () => {
+      if (
+        activated ||
+        !permissionModule ||
+        typeof permissionModule.can !== "function" ||
+        !transitionModule ||
+        !fetcher ||
+        typeof fetcher.fetchMessages !== "function"
+      ) {
+        return;
+      }
+
+      const permissions = permissionModule;
+      const navigation = transitionModule;
+      const messageFetcher = fetcher;
+      activated = true;
+
+      let navigationPatches = 0;
+
+      // Block navigation before allowing hidden entries into the channel list.
+      for (const [key, candidate] of Object.entries(navigation)) {
+        if (typeof candidate !== "function") continue;
+
+        own(
+          cleanup,
+          instead(navigation, key, function (args, original) {
+            const channelId = findChannelId(args);
+            const channel = channelId ? isHidden(channelId, permissions) : undefined;
+
+            if (channel) {
+              showBlockedNotice(channel, jsonStorage);
+              return undefined;
+            }
+
+            return Reflect.apply(original, this, args);
+          }),
+        );
+        navigationPatches += 1;
+      }
+
+      if (navigationPatches === 0) {
+        activated = false;
+        console.warn("[HiddenChannels] Navigation methods were not found; display-only mode was not enabled.");
+        return;
+      }
+
+      own(
+        cleanup,
+        instead(messageFetcher, "fetchMessages", function (args, original) {
+          const channelId = findChannelId(args);
+          const channel = channelId ? isHidden(channelId, permissions) : undefined;
+
+          if (channel) {
+            showBlockedNotice(channel, jsonStorage);
+            return undefined;
+          }
+
+          return Reflect.apply(original, this, args);
+        }),
+      );
+
+      // Defense in depth: if a hidden channel view is rendered by another path,
+      // replace it with metadata only.
+      patchChannelMessages();
+
+      // Only after the blockers are active may hidden channels be rendered.
+      own(
+        cleanup,
+        after(permissions, "can", (args, result) => {
+          const [permission, channel] = args as [bigint | number, unknown];
+
+          if (
+            permission === VIEW_CHANNEL &&
+            result === false &&
+            isChannel(channel) &&
+            isGuildChannel(channel) &&
+            !realPermissionChecks.has(channel)
+          ) {
+            return true;
+          }
+
+          return result;
+        }),
+      );
+
+      own(
+        cleanup,
+        getModules(
+          withProps<ChannelListModule>("renderChannelListItem"),
+          (module) => patchChannelList(cleanup, module, permissions, jsonStorage),
+        ),
+      );
+
+      console.info("[HiddenChannels] Display-only sidebar mode is active; navigation and message fetching are blocked.");
+    };
+
+    // Wait for Discord to initialize these modules itself. A one-shot lookup
+    // with initialize:true can force-load browser-only modules on Android.
     own(
       cleanup,
-      after(permissionModule, "can", (args, result) => {
-        const [permission, channel] = args as [bigint | number, unknown];
-
-        if (
-          permission === VIEW_CHANNEL &&
-          result === false &&
-          isChannel(channel) &&
-          isGuildChannel(channel) &&
-          !realPermissionChecks.has(channel)
-        ) {
-          return true;
-        }
-
-        return result;
+      getStore("PermissionStore", (store) => {
+        permissionModule = store as PermissionStore;
+        activateWhenReady();
       }),
     );
 
     own(
       cleanup,
       getModules(
-        withProps<ChannelListModule>("renderChannelListItem"),
-        (module) => patchChannelList(cleanup, module, permissionModule, jsonStorage),
+        withProps<Record<string, unknown>>("transitionToGuild"),
+        (module) => {
+          transitionModule = module;
+          activateWhenReady();
+        },
       ),
     );
 
-    console.info("[HiddenChannels] Display-only sidebar mode is active; navigation and message fetching are blocked.");
-  },
+    own(
+      cleanup,
+      getModules(
+        withProps<Record<string, unknown>>("fetchMessages"),
+        (module) => {
+          if (typeof module.fetchMessages === "function") {
+            fetcher = module;
+            activateWhenReady();
+          }
+        },
+      ),
+    );
 
+    own(
+      cleanup,
+      getModules(withName("ChannelMessages"), (module) => {
+        channelMessages = module as Record<string, unknown>;
+        patchChannelMessages();
+      }),
+    );
+  },
   stop() {
     disposeAll();
   },
