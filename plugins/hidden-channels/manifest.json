@@ -2,10 +2,10 @@
   "format": 1,
   "id": "com.lifawaz.hidden-channels",
   "name": "Hidden Channels",
-  "description": "Browse administrator-supplied channel metadata without overriding Discord permissions or loading messages.",
+  "description": "Browse cached hidden-channel metadata and administrator exports without overriding Discord permissions or loading messages.",
   "author": "LiFawaz (https://github.com/LiFawaz)",
   "contributors": ["Lioncat6", "cloudburst", "Training Dummy"],
-  "version": "3.0.2",
+  "version": "3.0.3",
   "dependencies": {
     "valenced.api": { "version": ">=1 <2" },
     "discord": { "version": "*" }
