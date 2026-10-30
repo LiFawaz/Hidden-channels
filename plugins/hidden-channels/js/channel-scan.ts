@@ -1,5 +1,4 @@
-import { lookupModule } from "@valenced/modules/finders";
-import { withProps } from "@valenced/modules/finders/filters";
+import { Stores } from "@valenced/discord/flux";
 import type { ChannelMetadataRecord } from "./settings";
 
 type UnknownRecord = Record<string, unknown>;
@@ -151,20 +150,11 @@ function getGuildIds(store: GuildStore | undefined): string[] {
  */
 export function scanCachedHiddenChannels(): ChannelScanResult {
   try {
-    const channelStore = (
-      lookupModule(withProps<ChannelStore>("getChannel", "getMutableGuildChannelsForGuild"))[0] ??
-      lookupModule(withProps<ChannelStore>("getChannel", "getChannels"))[0] ??
-      lookupModule(withProps<ChannelStore>("getChannels"))[0]
-    ) as unknown as ChannelStore | null;
-
-    const permissionStore = (
-      lookupModule(withProps<PermissionStore>("can", "computePermissions"))[0] ??
-      lookupModule(withProps<PermissionStore>("can"))[0]
-    ) as unknown as PermissionStore | null;
-
-    const guildStore = lookupModule(
-      withProps<GuildStore>("getGuildIds", "getGuild")
-    )[0] as unknown as GuildStore | null;
+    // Read the named Flux stores directly. Do not search by eagerly initializing
+    // candidate modules: some Discord Android modules assume a browser location.
+    const channelStore = Stores.ChannelStore as unknown as ChannelStore;
+    const permissionStore = Stores.PermissionStore as unknown as PermissionStore;
+    const guildStore = Stores.GuildStore as unknown as GuildStore;
 
     if (!channelStore) {
       return {
