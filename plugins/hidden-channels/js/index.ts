@@ -1,4 +1,4 @@
-import { getStore, Stores } from "@valenced/discord/flux";
+import { getStore } from "@valenced/discord/flux";
 import { getModules } from "@valenced/modules/finders";
 import { withName, withProps } from "@valenced/modules/finders/filters";
 import { after, instead } from "@valenced/patcher";
@@ -52,7 +52,7 @@ type Cleanup = (dispose: () => void) => void;
 const VIEW_CHANNEL = 1024n;
 const SKIPPED_CHANNEL_TYPES = new Set([1, 3, 4]);
 
-const channelStore = Stores.ChannelStore as unknown as ChannelStore;
+let channelStore: ChannelStore | undefined;
 const realPermissionChecks = new WeakSet<object>();
 const disposers = new Set<() => void>();
 let patchedListModules = new WeakSet<object>();
@@ -369,6 +369,7 @@ export default plugin<PluginOptions>({
     const activateWhenReady = () => {
       if (
         activated ||
+        !channelStore ||
         !permissionModule ||
         typeof permissionModule.can !== "function" ||
         !transitionModule ||
@@ -464,6 +465,14 @@ export default plugin<PluginOptions>({
 
     // Wait for Discord to initialize these modules itself. A one-shot lookup
     // with initialize:true can force-load browser-only modules on Android.
+    own(
+      cleanup,
+      getStore("ChannelStore", (store) => {
+        channelStore = store as unknown as ChannelStore;
+        activateWhenReady();
+      }),
+    );
+
     own(
       cleanup,
       getStore("PermissionStore", (store) => {
