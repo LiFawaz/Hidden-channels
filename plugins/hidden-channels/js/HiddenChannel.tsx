@@ -7,9 +7,7 @@ interface HiddenChannelProps {
 }
 
 export default function HiddenChannel({ channel, onClose }: HiddenChannelProps) {
-  const origin = channel.source === "cache"
-    ? "This entry was read from Discord's local client cache."
-    : "This entry was imported as administrator-provided metadata.";
+  const origin = "This entry was read from Discord's local client cache.";
 
   return (
     <View
