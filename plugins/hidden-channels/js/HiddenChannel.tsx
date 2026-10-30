@@ -28,8 +28,8 @@ export default function HiddenChannel({ channel, onClose }: HiddenChannelProps) 
           This channel is hidden.
         </Text>
         <Text style={{ color: "#b9bbbe", fontSize: 13, lineHeight: 19 }}>
-          {origin} Discord permissions remain unchanged. This view cannot open the channel
-          or retrieve its messages.
+          {origin} This view cannot open the channel or retrieve its messages. Server-side permissions
+          remain unchanged. Server-side permissions are unchanged.
         </Text>
       </View>
 
