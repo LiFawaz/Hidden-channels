@@ -29,6 +29,20 @@ export interface ChannelScanResult {
 const VIEW_CHANNEL = 1024n;
 const MAX_CHANNELS_TO_SCAN = 5_000;
 
+/**
+ * Stores is a proxy whose property getter may call lookupModule when a store
+ * has not been cached yet. Check the proxy's own keys first so this scanner
+ * only reads stores that Valenced has already initialized and cached.
+ */
+function getInitializedStore<T>(name: string): T | undefined {
+  try {
+    if (!Reflect.ownKeys(Stores).includes(name)) return undefined;
+    return Stores[name] as unknown as T;
+  } catch {
+    return undefined;
+  }
+}
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -150,11 +164,10 @@ function getGuildIds(store: GuildStore | undefined): string[] {
  */
 export function scanCachedHiddenChannels(): ChannelScanResult {
   try {
-    // Read the named Flux stores directly. Do not search by eagerly initializing
-    // candidate modules: some Discord Android modules assume a browser location.
-    const channelStore = Stores.ChannelStore as unknown as ChannelStore;
-    const permissionStore = Stores.PermissionStore as unknown as PermissionStore;
-    const guildStore = Stores.GuildStore as unknown as GuildStore;
+    // Only access Flux stores that Valenced has already initialized and cached.
+    const channelStore = getInitializedStore<ChannelStore>("ChannelStore");
+    const permissionStore = getInitializedStore<PermissionStore>("PermissionStore");
+    const guildStore = getInitializedStore<GuildStore>("GuildStore");
 
     if (!channelStore) {
       return {
