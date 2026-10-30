@@ -208,7 +208,7 @@ export function scanCachedHiddenChannels(): ChannelScanResult {
     for (const channel of candidates) {
       const id = toId(channel.id);
       const name = typeof channel.name === "string" ? channel.name.trim() : "";
-      if (id && name && !isExcludedChannel(channel)) unique.set(id, channel);
+      if (id && name) unique.set(id, channel);
     }
 
     const categoryNames = new Map<string, string>();
@@ -222,6 +222,8 @@ export function scanCachedHiddenChannels(): ChannelScanResult {
     let skipped = 0;
 
     for (const [id, channel] of unique) {
+      if (isExcludedChannel(channel)) continue;
+
       let canView: unknown;
 
       try {
