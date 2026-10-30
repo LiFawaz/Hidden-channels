@@ -1,6 +1,5 @@
 import { Pressable, Text, View } from "react-native";
 import type { ChannelMetadataRecord } from "./settings";
-import AlertContent from "./AlertContent";
 
 interface HiddenChannelProps {
   channel: ChannelMetadataRecord;
@@ -28,22 +27,13 @@ export default function HiddenChannel({ channel, onClose }: HiddenChannelProps) 
           This channel is hidden.
         </Text>
         <Text style={{ color: "#b9bbbe", fontSize: 13, lineHeight: 19 }}>
-          {origin} This view cannot open the channel or retrieve its messages. Server-side permissions
-          remain unchanged. Server-side permissions are unchanged.
+          {origin} This view cannot open the channel or retrieve its messages. Server-side permissions remain unchanged.
         </Text>
       </View>
 
       <Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "600" }}>
         #{channel.name}
       </Text>
-      {channel.category ? (
-        <Text style={{ color: "#b9bbbe", fontSize: 12 }}>
-          {channel.category}
-        </Text>
-      ) : null}
-
-      <View style={{ height: 1, backgroundColor: "#45474e" }} />
-      <AlertContent channel={channel} />
 
       <Pressable
         onPress={onClose}
