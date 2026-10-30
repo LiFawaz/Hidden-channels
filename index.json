@@ -5,7 +5,7 @@
   "plugins": {
     "com.lifawaz.hidden-channels": {
       "name": "Hidden Channels",
-      "description": "Display cached hidden channels as locked sidebar entries without opening channels or loading messages.",
+      "description": "Automatically display cached hidden channels as locked sidebar entries without opening channels or loading messages.",
       "author": "LiFawaz (https://github.com/LiFawaz)",
       "contributors": [
         "Lioncat6",
@@ -13,13 +13,13 @@
         "Training Dummy"
       ],
       "channels": {
-        "latest": "3.0.7"
+        "latest": "3.0.9"
       },
       "versions": {
-        "3.0.7": {
-          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@3.0.7.zip",
-          "sha256": "6bbbbef2f8a060ec6a17261b61e5eaf0936326d0969f955b02b98ac70d17f500",
-          "size": 6996,
+        "3.0.9": {
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@3.0.9.zip",
+          "sha256": "c379598e85a22c600aae2412ce62d505b3fe21c3891c89c7560e2bf84deebb9d",
+          "size": 3857,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
