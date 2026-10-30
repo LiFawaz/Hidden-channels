@@ -37,7 +37,7 @@ The import accepts either an array of channel objects or an object with a `chann
 }
 ```
 
-The only required fields are `id` and `name`. Optional metadata is displayed only when present in the imported file.
+The only required fields are `id` and `name`. Duplicate IDs are collapsed to one record, with the last occurrence taking precedence. Optional metadata is displayed only when present in the imported file. Imports are limited to 500,000 characters and 1,000 channel records; individual fields and role/user lists are also capped to keep the settings screen responsive.
 
 ## Install
 
