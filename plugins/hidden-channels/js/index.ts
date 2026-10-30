@@ -433,9 +433,14 @@ export default plugin<PluginOptions>({
       patchChannelMessages();
 
       // Only after the blockers are active may hidden channels be rendered.
+      // Valenced's after() hook receives only the return value, not the
+      // original arguments. Use instead() so we can inspect the permission
+      // and channel while preserving the real permission result for our own
+      // hidden-channel checks.
       own(
         cleanup,
-        after(permissions, "can", (args, result) => {
+        instead(permissions, "can", function (args, original) {
+          const result = Reflect.apply(original, this, args);
           const [permission, channel] = args as [bigint | number, unknown];
 
           if (
