@@ -5,12 +5,7 @@ import type { PluginSettingsComponent } from "@valenced/plugins/types";
 export interface ChannelMetadataRecord {
   id: string;
   name: string;
-  category?: string;
-  type?: string | number;
-  topic?: string;
-  createdAt?: string;
-  lastMessageAt?: string;
-  lastPinAt?: string;
+  type?: number;
   source?: "cache";
 }
 
