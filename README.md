@@ -1,19 +1,31 @@
 # Hidden Channels — Valenced
 
-A details-only viewer for channel metadata provided in a JSON export by a server administrator.
+A Valenced port of Lioncat6's Hidden Channels metadata interface, adapted to Valenced's plugin API and file structure.
 
 ## What it does
 
-- Imports channel metadata from an administrator-provided JSON file.
-- Displays channel name, category, type, topic, timestamps, and permission notes when those fields are included in the export.
-- Offers a searchable list, optional lock icon, and optional confirmation before opening a metadata card.
-- Saves settings and imported metadata with Valenced's persistent plugin storage.
+- Scans channel objects already present in Discord's local client cache.
+- Uses Discord's normal permission checker to identify cached channels the current account cannot view.
+- Displays metadata such as channel name, category, type, topic, creation time, last-message time, and last-pin time when those values are present in the local cache.
+- Includes the original-style **Configure** section with persistent lock-icon and confirmation settings.
+- Imports administrator-provided JSON metadata for additional details.
+- Keeps channel details in a metadata-only panel.
 
-## Important limitation
+## Important limitations
 
-This plugin does **not** override Discord's permission checks, make private channels visible, or retrieve metadata that Discord has not sent to the client. It cannot load or display messages from channels the current account cannot access. Imported metadata is not verified against live Discord permissions and may become outdated.
+This port does **not** override `PermissionStore.can()`, patch Discord navigation, grant access, or request hidden channel data from Discord. The scan is read-only and only examines channel objects already present in the local client cache. Discord may not send private channel records to the client at all; in that case the plugin cannot discover them.
 
-## Accepted JSON format
+Opening an entry only opens its metadata panel. It does not navigate into the channel or load messages. Imported permission notes are administrator-supplied text and are not verified against live Discord permissions.
+
+## Configure
+
+**Show Lock Icon** displays a lock beside records in the plugin's channel list.
+
+**Show Popup on Hidden Channels** asks for confirmation before opening the metadata panel.
+
+Both options are stored with Valenced's persistent JSON storage.
+
+## Import format
 
 The import accepts either an array of channel objects or an object with a `channels` array:
 
@@ -37,7 +49,7 @@ The import accepts either an array of channel objects or an object with a `chann
 }
 ```
 
-The only required fields are `id` and `name`. Duplicate IDs are collapsed to one record, with the last occurrence taking precedence. Optional metadata is displayed only when present in the imported file. Imports are limited to 500,000 characters and 1,000 channel records; individual fields and role/user lists are also capped to keep the settings screen responsive.
+The only required fields are `id` and `name`. Duplicate IDs collapse to one record, with the last occurrence taking precedence. Imports are limited to 500,000 characters and 1,000 channel records; individual fields and role/user lists are also capped.
 
 ## Install
 
@@ -45,7 +57,7 @@ Add this repository in Valenced:
 
 `https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/index.json`
 
-Install **Hidden Channels** and open its settings.
+Install **Hidden Channels**, open its settings, then choose **Scan Cached Channel Records**.
 
 ## Development
 
@@ -54,4 +66,4 @@ bun install
 bun run build
 ```
 
-The build workflow packages the compiled script together with the manifest at the ZIP root and publishes the repository index to GitHub Pages.
+The build workflow packages the compiled script with the manifest and publishes the repository index to GitHub Pages.
