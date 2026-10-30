@@ -1,4 +1,5 @@
-import { lookupByProps } from "@valenced/modules/finders";
+import { lookupModule } from "@valenced/modules/finders";
+import { withProps } from "@valenced/modules/finders/filters";
 import type { ChannelMetadataRecord } from "./settings";
 
 type UnknownRecord = Record<string, unknown>;
@@ -151,17 +152,19 @@ function getGuildIds(store: GuildStore | undefined): string[] {
 export function scanCachedHiddenChannels(): ChannelScanResult {
   try {
     const channelStore = (
-      lookupByProps(["getChannel", "getMutableGuildChannelsForGuild"]) ??
-      lookupByProps(["getChannel", "getChannels"]) ??
-      lookupByProps(["getChannels"])
+      lookupModule(withProps<ChannelStore>("getChannel", "getMutableGuildChannelsForGuild"))[0] ??
+      lookupModule(withProps<ChannelStore>("getChannel", "getChannels"))[0] ??
+      lookupModule(withProps<ChannelStore>("getChannels"))[0]
     ) as unknown as ChannelStore | null;
 
     const permissionStore = (
-      lookupByProps(["can", "computePermissions"]) ?? lookupByProps(["can"])
+      lookupModule(withProps<PermissionStore>("can", "computePermissions"))[0] ??
+      lookupModule(withProps<PermissionStore>("can"))[0]
     ) as unknown as PermissionStore | null;
 
-    const guildStore = lookupByProps(["getGuildIds", "getGuild"]) as unknown as
-      GuildStore | null;
+    const guildStore = lookupModule(
+      withProps<GuildStore>("getGuildIds", "getGuild")
+    )[0] as unknown as GuildStore | null;
 
     if (!channelStore) {
       return {
