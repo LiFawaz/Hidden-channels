@@ -7,9 +7,7 @@ interface HiddenChannelProps {
 }
 
 export default function HiddenChannel({ channel, onClose }: HiddenChannelProps) {
-  const origin = channel.source === "cache"
-    ? "This entry was read from Discord's local client cache."
-    : "This entry was imported as administrator-provided metadata.";
+  const origin = "This entry was read from Discord's local client cache.";
 
   return (
     <View
@@ -34,6 +32,11 @@ export default function HiddenChannel({ channel, onClose }: HiddenChannelProps) 
       <Text style={{ color: "#f2f3f5", fontSize: 16, fontWeight: "600" }}>
         #{channel.name}
       </Text>
+      {channel.category ? <Text style={{ color: "#b9bbbe" }}>Category: {channel.category}</Text> : null}
+      {channel.topic ? <Text style={{ color: "#b9bbbe" }}>Topic: {channel.topic}</Text> : null}
+      {channel.createdAt ? <Text style={{ color: "#b9bbbe" }}>Created: {new Date(channel.createdAt).toLocaleString()}</Text> : null}
+      {channel.lastMessageAt ? <Text style={{ color: "#b9bbbe" }}>Last message: {new Date(channel.lastMessageAt).toLocaleString()}</Text> : null}
+      {channel.lastPinAt ? <Text style={{ color: "#b9bbbe" }}>Last pin: {new Date(channel.lastPinAt).toLocaleString()}</Text> : null}
 
       <Pressable
         onPress={onClose}
