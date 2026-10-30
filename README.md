@@ -1,27 +1,28 @@
 # Hidden Channels — Valenced
 
-A Valenced port of Lioncat6's Hidden Channels metadata interface, adapted to Valenced's plugin API and file structure.
+A Valenced port of Lioncat6's Hidden Channels interface, adapted to Valenced's plugin APIs.
 
 ## What it does
 
-- Scans channel objects already present in Discord's local client cache.
-- Uses Discord's normal permission checker to identify cached channels the current account cannot view.
-- Displays metadata such as channel name, category, type, topic, creation time, last-message time, and last-pin time when those values are present in the local cache.
+- Displays hidden cached channel names in Discord's channel list with a lock indicator.
+- Uses the client's real permission result to identify hidden channels.
+- Blocks navigation into hidden entries and blocks the channel message-fetch path.
+- Shows a metadata-only notice when a hidden channel is selected.
 - Includes the original-style **Configure** section with persistent lock-icon and confirmation settings.
 - Imports administrator-provided JSON metadata for additional details.
-- Keeps channel details in a metadata-only panel.
+- Displays topic, channel creation time, last-message time, last-pin time, and imported permission notes when available.
 
-## Important limitations
+## Display-only behaviour
 
-This port does **not** override `PermissionStore.can()`, patch Discord navigation, grant access, or request hidden channel data from Discord. The scan is read-only and only examines channel objects already present in the local client cache. Discord may not send private channel records to the client at all; in that case the plugin cannot discover them.
+The plugin changes the client's `VIEW_CHANNEL` result for hidden guild-channel objects so Discord can render their sidebar rows. It does **not** grant server-side access. The navigation handler blocks opening those channels, the message-fetch guard blocks the normal fetch path, and the message-view component is replaced with metadata-only content when that module is available.
 
-Opening an entry only opens its metadata panel. It does not navigate into the channel or load messages. Imported permission notes are administrator-supplied text and are not verified against live Discord permissions.
+This is a client-side UI modification, not a Discord permission grant. It does not make private messages readable and cannot retrieve data that Discord has not delivered to the local client. A channel may not appear if its metadata is not present in the local channel store.
 
 ## Configure
 
-**Show Lock Icon** displays a lock beside records in the plugin's channel list.
+**Show Lock Icon** displays a lock beside hidden channel names in the sidebar and plugin list.
 
-**Show Popup on Hidden Channels** asks for confirmation before opening the metadata panel.
+**Show Popup on Hidden Channels** shows a notice when a hidden sidebar entry is selected. Turning it off does not enable navigation; hidden entries remain display-only.
 
 Both options are stored with Valenced's persistent JSON storage.
 
@@ -57,7 +58,7 @@ Add this repository in Valenced:
 
 `https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/index.json`
 
-Install **Hidden Channels**, open its settings, then choose **Scan Cached Channel Records**.
+Install **Hidden Channels**, open its settings, then enable it.
 
 ## Development
 
