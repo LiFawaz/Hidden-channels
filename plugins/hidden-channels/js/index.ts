@@ -17,11 +17,6 @@ interface Channel {
   type: number;
   guild_id?: string | null;
   parent_id?: string | null;
-  topic?: string | null;
-  lastMessageId?: string | null;
-  last_message_id?: string | null;
-  lastPinTimestamp?: number | string | null;
-  last_pin_timestamp?: number | string | null;
 }
 
 interface ChannelStore {
@@ -135,42 +130,15 @@ function getShowConfirmation(storage: { cache?: HiddenChannelsStorage }): boolea
   return storage.cache?.showConfirmation ?? DEFAULT_SETTINGS.showConfirmation;
 }
 
-function formatSnowflakeDate(value: string | undefined): string | undefined {
-  if (!value || !/^\d{15,22}$/.test(value)) return undefined;
-
-  try {
-    const timestamp = Number((BigInt(value) >> 22n) + 1_420_070_400_000n);
-    const date = new Date(timestamp);
-    return Number.isFinite(date.getTime()) ? date.toLocaleString() : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 function showBlockedNotice(
   channel: Channel,
   storage: { cache?: HiddenChannelsStorage },
 ): void {
   if (!getShowConfirmation(storage)) return;
 
-  const details = [
-    channel.topic ? `Topic: ${channel.topic}` : undefined,
-    formatSnowflakeDate(channel.id)
-      ? `Created: ${formatSnowflakeDate(channel.id)}`
-      : undefined,
-    formatSnowflakeDate(channel.lastMessageId ?? channel.last_message_id ?? undefined)
-      ? `Last message: ${formatSnowflakeDate(channel.lastMessageId ?? channel.last_message_id ?? undefined)}`
-      : undefined,
-  ].filter((line): line is string => Boolean(line));
-
   Alert.alert(
     "Hidden channel",
-    [
-      `#${channel.name}`,
-      ...details,
-      "",
-      "This entry is display-only. Tapping it will not open the channel or load messages.",
-    ].join("\n"),
+    `#${channel.name}\n\nThis entry is display-only. Tapping it will not open the channel or load messages.`,
     [{ text: "OK" }],
   );
 }
@@ -251,19 +219,6 @@ function toMetadata(channel: Channel): ChannelMetadataRecord {
     id: channel.id,
     name: channel.name,
     type: channel.type,
-    topic: channel.topic ?? undefined,
-    createdAt: formatSnowflakeDate(channel.id),
-    lastMessageAt: formatSnowflakeDate(
-      channel.lastMessageId ?? channel.last_message_id ?? undefined,
-    ),
-    lastPinAt:
-      typeof channel.lastPinTimestamp === "number" ||
-      typeof channel.lastPinTimestamp === "string"
-        ? String(channel.lastPinTimestamp)
-        : typeof channel.last_pin_timestamp === "number" ||
-            typeof channel.last_pin_timestamp === "string"
-          ? String(channel.last_pin_timestamp)
-          : undefined,
     source: "cache",
   };
 }
