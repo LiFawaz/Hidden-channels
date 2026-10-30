@@ -1,4 +1,4 @@
-import { React, ReactNative as RN } from "@valenced/react";
+import { Text, View } from "react-native";
 import type { ChannelMetadataRecord } from "./settings";
 
 interface AlertContentProps {
@@ -39,20 +39,20 @@ interface DetailRowProps {
 
 function DetailRow({ label, value }: DetailRowProps) {
   return (
-    <RN.View style={{ gap: 3, paddingVertical: 5 }}>
-      <RN.Text style={{ color: "#b9bbbe", fontSize: 12, fontWeight: "600" }}>
+    <View style={{ gap: 3, paddingVertical: 5 }}>
+      <Text style={{ color: "#b9bbbe", fontSize: 12, fontWeight: "600" }}>
         {label}
-      </RN.Text>
-      <RN.Text selectable style={{ color: "#f2f3f5", fontSize: 14, lineHeight: 20 }}>
+      </Text>
+      <Text selectable style={{ color: "#f2f3f5", fontSize: 14, lineHeight: 20 }}>
         {value}
-      </RN.Text>
-    </RN.View>
+      </Text>
+    </View>
   );
 }
 
 export default function AlertContent({ channel }: AlertContentProps) {
   return (
-    <RN.View style={{ gap: 4 }}>
+    <View style={{ gap: 4 }}>
       <DetailRow label="Topic" value={channel.topic || "No topic."} />
       <DetailRow label="Creation date" value={formatDate(channel.createdAt)} />
       <DetailRow label="Last message" value={formatDate(channel.lastMessageAt)} />
@@ -67,6 +67,6 @@ export default function AlertContent({ channel }: AlertContentProps) {
         <DetailRow label="Permission summary (imported note)" value={channel.permissionSummary} />
       ) : null}
       <DetailRow label="Channel ID" value={channel.id} />
-    </RN.View>
+    </View>
   );
 }
