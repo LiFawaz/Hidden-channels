@@ -13,13 +13,13 @@
         "Training Dummy"
       ],
       "channels": {
-        "latest": "3.0.6"
+        "latest": "3.0.7"
       },
       "versions": {
-        "3.0.6": {
-          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@3.0.6.zip",
-          "sha256": "bab8faa6cd174ec6bb24c9ffe03abc6ce5bef30fd9e129941dc73986d56a59a3",
-          "size": 6957,
+        "3.0.7": {
+          "url": "https://raw.githubusercontent.com/LiFawaz/Hidden-channels/gh-pages/pool/com.lifawaz.hidden-channels@3.0.7.zip",
+          "sha256": "6bbbbef2f8a060ec6a17261b61e5eaf0936326d0969f955b02b98ac70d17f500",
+          "size": 6996,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
