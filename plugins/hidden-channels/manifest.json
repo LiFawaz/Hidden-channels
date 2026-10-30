@@ -2,14 +2,14 @@
   "format": 1,
   "id": "com.lifawaz.hidden-channels",
   "name": "Hidden Channels",
-  "description": "Automatically display cached hidden channels as locked sidebar entries without opening channels or loading messages.",
+  "description": "Automatically display cached hidden channel names as locked sidebar entries without opening channels or loading messages.",
   "author": "LiFawaz (https://github.com/LiFawaz)",
   "contributors": [
     "Lioncat6",
     "cloudburst",
     "Training Dummy"
   ],
-  "version": "3.0.9",
+  "version": "3.0.10",
   "dependencies": {
     "valenced.api": {
       "version": ">=1 <2"
