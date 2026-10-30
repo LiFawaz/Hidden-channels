@@ -335,13 +335,101 @@ export default plugin<PluginOptions>({
       lookupModule(withProps<PermissionStore>("can"))[0]
     ) as PermissionStore | undefined;
 
+    const transitionModule = lookupModule(
+      withProps<Record<string, unknown>>("transitionToGuild"),
+    )[0] as Record<string, unknown> | undefined;
+
+    const fetcher = (
+      lookupModule(withProps<Record<string, unknown>>("stores", "fetchMessages"))[0] ??
+      lookupModule(withProps<Record<string, unknown>>("fetchMessages"))[0]
+    ) as Record<string, unknown> | undefined;
+
     if (!permissionModule || typeof permissionModule.can !== "function") {
-      console.warn("[HiddenChannels] PermissionStore was not found; sidebar display was not enabled.");
+      console.warn("[HiddenChannels] PermissionStore was not found; display-only mode was not enabled.");
       return;
     }
 
-    // The channel list may display cached hidden rows, but other permissions
-    // are untouched and all navigation/message access is blocked below.
+    if (!transitionModule) {
+      console.warn("[HiddenChannels] Navigation module was not found; display-only mode was not enabled.");
+      return;
+    }
+
+    if (!fetcher || typeof fetcher.fetchMessages !== "function") {
+      console.warn("[HiddenChannels] Message-fetch module was not found; display-only mode was not enabled.");
+      return;
+    }
+
+    let navigationPatches = 0;
+
+    // Install the blockers before allowing the channel list to display hidden rows.
+    for (const [key, candidate] of Object.entries(transitionModule)) {
+      if (typeof candidate !== "function") continue;
+
+      own(
+        cleanup,
+        instead(transitionModule, key, function (args, original) {
+          const channelId = findChannelId(args[0]);
+          const channel = channelId ? isHidden(channelId, permissionModule) : undefined;
+
+          if (channel) {
+            showBlockedNotice(channel, jsonStorage);
+            return undefined;
+          }
+
+          return Reflect.apply(original, this, args);
+        }),
+      );
+      navigationPatches += 1;
+    }
+
+    if (navigationPatches === 0) {
+      disposeAll();
+      console.warn("[HiddenChannels] No navigation handlers were patchable; display-only mode was not enabled.");
+      return;
+    }
+
+    own(
+      cleanup,
+      instead(fetcher, "fetchMessages", function (args, original) {
+        const channelId = findChannelId(args);
+        const channel = channelId ? isHidden(channelId, permissionModule) : undefined;
+
+        if (channel) {
+          showBlockedNotice(channel, jsonStorage);
+          return undefined;
+        }
+
+        return Reflect.apply(original, this, args);
+      }),
+    );
+
+    const channelMessages = lookupModule(withName("ChannelMessages"))[0] as
+      | Record<string, unknown>
+      | undefined;
+
+    if (channelMessages && typeof channelMessages.default === "function") {
+      own(
+        cleanup,
+        instead(channelMessages, "default", function (args, original) {
+          const props = args[0] as { channel?: unknown } | undefined;
+          const channel = props?.channel
+            ? isHidden(props.channel, permissionModule)
+            : undefined;
+
+          if (channel) {
+            return createElement(HiddenChannel, {
+              channel: toMetadata(channel),
+              onClose: () => undefined,
+            });
+          }
+
+          return Reflect.apply(original, this, args);
+        }),
+      );
+    }
+
+    // Only after navigation and message-fetch blockers are installed do we
+    // adjust the client's VIEW_CHANNEL result so its sidebar can render rows.
     own(
       cleanup,
       after(permissionModule, "can", (args, result) => {
@@ -369,81 +457,7 @@ export default plugin<PluginOptions>({
       ),
     );
 
-    const transitionModule = lookupModule(
-      withProps<Record<string, unknown>>("transitionToGuild"),
-    )[0] as Record<string, unknown> | undefined;
-
-    if (transitionModule) {
-      for (const [key, candidate] of Object.entries(transitionModule)) {
-        if (typeof candidate !== "function") continue;
-
-        own(
-          cleanup,
-          instead(transitionModule, key, function (args, original) {
-            const channelId = findChannelId(args[0]);
-            const channel = channelId ? isHidden(channelId, permissionModule) : undefined;
-
-            if (channel) {
-              showBlockedNotice(channel, jsonStorage);
-              return undefined;
-            }
-
-            return Reflect.apply(original, this, args);
-          }),
-        );
-      }
-    } else {
-      console.warn("[HiddenChannels] Channel navigation module was not found.");
-    }
-
-    const fetcher = (
-      lookupModule(withProps<Record<string, unknown>>("stores", "fetchMessages"))[0] ??
-      lookupModule(withProps<Record<string, unknown>>("fetchMessages"))[0]
-    ) as Record<string, unknown> | undefined;
-
-    if (fetcher && typeof fetcher.fetchMessages === "function") {
-      own(
-        cleanup,
-        instead(fetcher, "fetchMessages", function (args, original) {
-          const channelId = findChannelId(args);
-          const channel = channelId ? isHidden(channelId, permissionModule) : undefined;
-
-          if (channel) {
-            showBlockedNotice(channel, jsonStorage);
-            return undefined;
-          }
-
-          return Reflect.apply(original, this, args);
-        }),
-      );
-    }
-
-    const channelMessages = lookupModule(withName("ChannelMessages"))[0] as
-      | Record<string, unknown>
-      | undefined;
-
-    if (channelMessages && typeof channelMessages.default === "function") {
-      own(
-        cleanup,
-        instead(channelMessages, "default", function (args, original) {
-          const props = args[0] as { channel?: unknown } | undefined;
-          const channel = props?.channel
-            ? isHidden(props.channel, permissionModule)
-            : undefined;
-
-          if (channel) {
-            return createElement(HiddenChannel, {
-              channel: toMetadata(channel),
-              onClose: () => undefined,
-            });
-          }
-
-          return Reflect.apply(original, this, args);
-        }),
-      );
-    }
-
-    console.info("[HiddenChannels] Sidebar-only hidden channel display is active.");
+    console.info("[HiddenChannels] Display-only sidebar mode is active; navigation and message fetching are blocked.");
   },
 
   stop() {
