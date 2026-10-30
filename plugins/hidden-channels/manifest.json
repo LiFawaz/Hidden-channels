@@ -5,7 +5,7 @@
   "description": "Browse administrator-supplied channel metadata without overriding Discord permissions or loading messages.",
   "author": "LiFawaz (https://github.com/LiFawaz)",
   "contributors": ["Lioncat6", "cloudburst", "Training Dummy"],
-  "version": "3.0.1",
+  "version": "3.0.2",
   "dependencies": {
     "valenced.api": { "version": ">=1 <2" },
     "discord": { "version": "*" }
